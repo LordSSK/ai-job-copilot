@@ -149,24 +149,45 @@ function initJobDescription() {
     updateStatus('Extracting job description...');
     
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(
-        tabs[0].id, 
-        { action: 'extractJobDescription' }, 
-        (response) => {
-          if (chrome.runtime.lastError) {
-            updateStatus('Error: Could not connect to page', 'error');
-            return;
+      if (!tabs || tabs.length === 0) {
+        updateStatus('Error: No active tab found', 'error');
+        return;
+      }
+      
+      const activeTab = tabs[0];
+      
+      // First ensure content script is loaded
+      chrome.scripting.executeScript({
+        target: { tabId: activeTab.id },
+        files: ['content/jobfill-functions.js']
+      })
+      .then(() => {
+        // Now send message to extract job description
+        chrome.tabs.sendMessage(
+          activeTab.id, 
+          { action: 'extractJobDescription' }, 
+          (response) => {
+            if (chrome.runtime.lastError) {
+              updateStatus('Error: ' + chrome.runtime.lastError.message, 'error');
+              return;
+            }
+            
+            if (response && response.jobDescription) {
+              jobDescription.value = response.jobDescription;
+              saveJobDescription(response.jobDescription);
+              updateStatus('Job description extracted');
+            } else if (response && response.error) {
+              updateStatus('Error: ' + response.error, 'warning');
+            } else {
+              updateStatus('Could not find job description', 'warning');
+            }
           }
-          
-          if (response && response.jobDescription) {
-            jobDescription.value = response.jobDescription;
-            saveJobDescription(response.jobDescription);
-            updateStatus('Job description extracted');
-          } else {
-            updateStatus('Could not find job description', 'warning');
-          }
-        }
-      );
+        );
+      })
+      .catch(error => {
+        updateStatus('Error: Could not inject content script', 'error');
+        console.error('Script injection error:', error);
+      });
     });
   });
   
@@ -304,25 +325,46 @@ function initGenerateContent() {
       }
       
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(
-          tabs[0].id, 
-          { 
-            action: 'autofillApplication',
-            data: data.generatedContent
-          }, 
-          (response) => {
-            if (chrome.runtime.lastError) {
-              updateStatus('Error: Could not connect to page', 'error');
-              return;
+        if (!tabs || tabs.length === 0) {
+          updateStatus('Error: No active tab found', 'error');
+          return;
+        }
+        
+        const activeTab = tabs[0];
+        
+        // First ensure content script is loaded
+        chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          files: ['content/jobfill-functions.js']
+        })
+        .then(() => {
+          // Now send the autofill message
+          chrome.tabs.sendMessage(
+            activeTab.id, 
+            { 
+              action: 'autofillApplication',
+              data: data.generatedContent
+            }, 
+            (response) => {
+              if (chrome.runtime.lastError) {
+                updateStatus('Error: ' + chrome.runtime.lastError.message, 'error');
+                return;
+              }
+              
+              if (response && response.success) {
+                updateStatus(`Autofilled ${response.filled} fields`);
+              } else if (response && response.error) {
+                updateStatus('Error: ' + response.error, 'warning');
+              } else {
+                updateStatus('Autofill failed or no fields found', 'warning');
+              }
             }
-            
-            if (response && response.success) {
-              updateStatus(`Autofilled ${response.filled} fields`);
-            } else {
-              updateStatus('Autofill failed or no fields found', 'warning');
-            }
-          }
-        );
+          );
+        })
+        .catch(error => {
+          updateStatus('Error: Could not inject content script', 'error');
+          console.error('Script injection error:', error);
+        });
       });
     });
   });

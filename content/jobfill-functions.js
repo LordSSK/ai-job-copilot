@@ -48,13 +48,114 @@ function extractGreenhouseJobDescription() {
 }
 
 function extractLeverJobDescription() {
-  // Lever typically has a specific section for job descriptions
-  const descriptionElement = document.querySelector('.posting-page, .posting-category-content, .section-wrapper');
+  // Log for debugging
+  console.log('Extracting Lever job description');
+
+  // Try multiple approaches to extract content
   
-  if (descriptionElement) {
-    return descriptionElement.textContent;
+  // APPROACH 1: Get the entire content wrapper and process
+  const contentWrapper = document.querySelector('.content-wrapper.posting-page');
+  if (contentWrapper) {
+    console.log('Found content-wrapper.posting-page');
+    
+    // Get all sections in the job posting
+    const allSections = contentWrapper.querySelectorAll('.section');
+    if (allSections && allSections.length > 0) {
+      console.log(`Found ${allSections.length} sections`);
+      
+      // Extract text from all relevant sections
+      let fullText = '';
+      
+      // Get job title
+      const jobTitle = contentWrapper.querySelector('.posting-headline h2');
+      if (jobTitle) {
+        fullText += `${jobTitle.textContent.trim()}\n\n`;
+      }
+      
+      // Get all section content
+      Array.from(allSections).forEach(section => {
+        // Skip apply button sections
+        if (section.querySelector('.postings-btn')) {
+          return;
+        }
+        
+        const sectionText = section.textContent.trim();
+        if (sectionText && sectionText.length > 0) {
+          fullText += `${sectionText}\n\n`;
+        }
+      });
+      
+      if (fullText.length > 0) {
+        console.log('Successfully extracted job description using approach 1');
+        return fullText.trim();
+      }
+    }
   }
   
+  // APPROACH 2: Target specific data-qa attributes
+  console.log('Trying approach 2 with data-qa attributes');
+  const jobDescriptionSection = document.querySelector('[data-qa="job-description"]');
+  const closingSection = document.querySelector('[data-qa="closing-description"]');
+  
+  if (jobDescriptionSection || closingSection) {
+    console.log('Found job sections with data-qa attributes');
+    let description = '';
+    
+    // Try to get the job title first
+    const jobTitle = document.querySelector('.posting-headline h2');
+    if (jobTitle) {
+      description += `${jobTitle.textContent.trim()}\n\n`;
+    }
+    
+    // Add job description content
+    if (jobDescriptionSection) {
+      description += `${jobDescriptionSection.textContent.trim()}\n\n`;
+    }
+    
+    // Add any other section content
+    const otherSections = document.querySelectorAll('.section.page-centered');
+    if (otherSections && otherSections.length > 0) {
+      Array.from(otherSections).forEach(section => {
+        // Skip sections we've already included and button sections
+        if (section !== jobDescriptionSection && 
+            section !== closingSection && 
+            !section.classList.contains('last-section-apply')) {
+          const sectionText = section.textContent.trim();
+          if (sectionText.length > 0) {
+            description += `${sectionText}\n\n`;
+          }
+        }
+      });
+    }
+    
+    // Add closing description
+    if (closingSection) {
+      description += `${closingSection.textContent.trim()}`;
+    }
+    
+    if (description.length > 0) {
+      console.log('Successfully extracted job description using approach 2');
+      return description.trim();
+    }
+  }
+  
+  // APPROACH 3: Get the content div directly
+  console.log('Trying approach 3 with content div');
+  const contentDiv = document.querySelector('.content');
+  if (contentDiv) {
+    console.log('Found .content div');
+    return contentDiv.textContent.trim();
+  }
+  
+  // APPROACH 4: Fallback to previous implementation
+  console.log('Falling back to previous approach');
+  const descriptionElement = document.querySelector('.posting-page, .posting-category-content, .section-wrapper');
+  if (descriptionElement) {
+    return descriptionElement.textContent.trim();
+  }
+  
+  // Last resort - use generic extraction
+  console.log('No Lever-specific structure found, using generic extraction');
   return extractGenericJobDescription();
 }
 
@@ -466,4 +567,35 @@ function showToast(message) {
   setTimeout(() => {
     toast.remove();
   }, 5000);
-} 
+}
+
+// Listen for messages from the popup or background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Content script received message:', request.action);
+  
+  if (request.action === 'extractJobDescription') {
+    try {
+      const jobDescription = extractJobDescription();
+      console.log('Extracted job description, length:', jobDescription.length);
+      sendResponse({ jobDescription });
+    } catch (error) {
+      console.error('Error extracting job description:', error);
+      sendResponse({ error: error.message });
+    }
+    return true; // Required for async response
+  }
+  
+  if (request.action === 'autofillApplication') {
+    try {
+      const result = autofillApplication(request.data);
+      sendResponse(result);
+    } catch (error) {
+      console.error('Error autofilling application:', error);
+      sendResponse({ error: error.message, success: false });
+    }
+    return true; // Required for async response
+  }
+});
+
+// Log to confirm content script has loaded
+console.log('JobFill content script loaded successfully'); 

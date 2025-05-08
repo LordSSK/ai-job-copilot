@@ -32,13 +32,9 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://*.workday.com/*",
-        "*://*.greenhouse.io/*",
-        "*://*.lever.co/*"
-      ],
-      "js": ["content/content.js"],
-      "css": ["styles/content.css"]
+      "matches": ["*://*.workday.com/*", "*://*.greenhouse.io/*", "*://*.lever.co/*", "<all_urls>"],
+      "js": ["content/jobfill-functions.js"],
+      "css": ["content/jobfill-styles.css"]
     }
   ],
   "web_accessible_resources": [
