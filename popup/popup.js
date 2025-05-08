@@ -794,18 +794,6 @@ function initSettings() {
       updateModelOptions('openai');
     }
   });
-  
-  // Upgrade to premium (placeholder)
-  upgradeBtn.addEventListener('click', () => {
-    // In a real extension, this would open a payment page or subscription modal
-    chrome.tabs.create({ url: 'https://example.com/upgrade' });
-  });
-  
-  // Login (placeholder)
-  loginBtn.addEventListener('click', () => {
-    // In a real extension, this would handle authentication
-    chrome.tabs.create({ url: 'https://example.com/login' });
-  });
 }
 
 // Utility function to load user data
