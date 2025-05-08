@@ -1,0 +1,44 @@
+.jobfill-highlighted {
+  outline: 2px solid #4a6cf7 !important;
+  background-color: rgba(74, 108, 247, 0.05) !important;
+  transition: all 0.3s !important;
+}
+
+.jobfill-badge {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  background-color: #4a6cf7;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: 'Segoe UI', sans-serif;
+  z-index: 10000;
+}
+
+.jobfill-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #4a6cf7;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10001;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+  max-width: 300px;
+  animation: jobfill-fade-in 0.3s, jobfill-fade-out 0.3s 3s forwards;
+}
+
+@keyframes jobfill-fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes jobfill-fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(20px); }
+} 

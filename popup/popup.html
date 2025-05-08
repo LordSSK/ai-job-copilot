@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobFill</title>
+  <link rel="stylesheet" href="../styles/popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>JobFill</h1>
+      <div class="user-status">
+        <span id="status-badge">Free Plan</span>
+        <button id="login-btn" class="btn btn-sm">Login</button>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="resume">Resume</button>
+      <button class="tab-btn" data-tab="job">Job Description</button>
+      <button class="tab-btn" data-tab="generate">Generate</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </div>
+
+    <div class="tab-content">
+      <!-- Resume Tab -->
+      <div id="resume-tab" class="tab-pane active">
+        <div class="upload-section">
+          <h2>Upload Your Resume</h2>
+          <div class="upload-area" id="resume-upload-area">
+            <img src="../assets/upload.svg" alt="Upload" class="upload-icon">
+            <p>Drag & Drop your resume (PDF or TXT)</p>
+            <p>or</p>
+            <label for="resume-file" class="btn">Browse Files</label>
+            <input type="file" id="resume-file" accept=".pdf,.txt" hidden>
+          </div>
+          <div class="resume-preview" id="resume-preview" hidden>
+            <div class="preview-header">
+              <span class="filename" id="resume-filename">resume.pdf</span>
+              <button class="btn-icon" id="resume-remove">×</button>
+            </div>
+            <div class="preview-content" id="resume-content">
+              <!-- Resume content preview goes here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Job Description Tab -->
+      <div id="job-tab" class="tab-pane">
+        <div class="job-description-section">
+          <h2>Job Description</h2>
+          <div class="job-actions">
+            <button id="extract-jd-btn" class="btn">Extract from Current Page</button>
+            <span>or</span>
+            <button id="manual-jd-btn" class="btn btn-secondary">Enter Manually</button>
+          </div>
+          <div class="job-editor">
+            <textarea id="job-description" placeholder="Job description will appear here. You can edit it if needed..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate Tab -->
+      <div id="generate-tab" class="tab-pane">
+        <div class="generate-section">
+          <h2>Generate Application Content</h2>
+          <div class="generate-options">
+            <label class="checkbox-label">
+              <input type="checkbox" id="generate-summary" checked>
+              Professional Summary
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="generate-experience" checked>
+              Experience Bullets
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="generate-skills" checked>
+              Skills
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="generate-cover-letter" checked>
+              Cover Letter
+            </label>
+          </div>
+          <button id="generate-btn" class="btn btn-primary">Generate Content</button>
+          
+          <div class="generated-content" id="generated-content-container" hidden>
+            <div class="generated-item">
+              <h3>Professional Summary</h3>
+              <div class="content-preview" id="summary-preview"></div>
+            </div>
+            <div class="generated-item">
+              <h3>Experience Bullets</h3>
+              <div class="content-preview" id="experience-preview"></div>
+            </div>
+            <div class="generated-item">
+              <h3>Skills</h3>
+              <div class="content-preview" id="skills-preview"></div>
+            </div>
+            <div class="generated-item">
+              <h3>Cover Letter</h3>
+              <div class="content-preview" id="cover-letter-preview"></div>
+            </div>
+            <button id="autofill-btn" class="btn btn-primary">Autofill Application</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="settings-tab" class="tab-pane">
+        <div class="settings-section">
+          <h2>Settings</h2>
+          
+          <div class="setting-group">
+            <h3>AI Model</h3>
+            <select id="ai-model-select">
+              <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Free)</option>
+              <option value="gpt-4" disabled>GPT-4 (Premium)</option>
+              <option value="claude-2" disabled>Claude 2 (Premium)</option>
+            </select>
+          </div>
+          
+          <div class="setting-group">
+            <h3>API Key</h3>
+            <input type="password" id="api-key-input" placeholder="Enter your OpenAI API key">
+            <p class="setting-help">Your API key is stored locally and used only for generating content.</p>
+          </div>
+          
+          <div class="setting-group">
+            <h3>Subscription</h3>
+            <div class="subscription-info">
+              <p>Current Plan: <span id="current-plan">Free</span></p>
+              <button id="upgrade-btn" class="btn btn-primary">Upgrade to Premium</button>
+              <ul class="premium-features">
+                <li>Advanced AI models (GPT-4, Claude)</li>
+                <li>Unlimited applications</li>
+                <li>Custom templates</li>
+                <li>Priority support</li>
+              </ul>
+            </div>
+          </div>
+          
+          <button id="save-settings-btn" class="btn">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <span id="status-message">Ready</span>
+      <div class="progress-bar" id="progress-bar" hidden>
+        <div class="progress-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../utils/storage.js"></script>
+  <script src="../utils/auth.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html> 
