@@ -289,6 +289,111 @@ header h1 {
   font-size: 13px;
   max-height: 100px;
   overflow-y: auto;
+  line-height: 1.4;
+}
+
+/* Style for bullet points in content preview */
+.content-preview ul {
+  padding-left: 20px;
+  margin: 0;
+  list-style-type: disc;
+}
+
+.content-preview li {
+  margin-bottom: 4px;
+}
+
+/* Experience organization styles */
+.content-preview .org-header {
+  margin-bottom: 6px;
+}
+
+.content-preview .org-name {
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.content-preview .org-details {
+  font-size: 0.9em;
+  color: var(--light-text);
+  margin-bottom: 4px;
+}
+
+/* Education styles */
+.content-preview .edu-header {
+  margin-bottom: 6px;
+}
+
+.content-preview .institution-name {
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.content-preview .degree-field {
+  font-size: 0.9em;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.content-preview .achievements {
+  margin-left: 20px;
+  margin-bottom: 10px;
+  font-size: 0.9em;
+}
+
+/* Project styles */
+.content-preview .project-section {
+  margin-bottom: 15px;
+  border-left: 3px solid var(--primary-color);
+  padding-left: 8px;
+}
+
+.content-preview .project-header {
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.content-preview .project-name {
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.content-preview .project-date {
+  font-size: 0.9em;
+  color: var(--light-text);
+}
+
+.content-preview .project-details {
+  margin-top: 4px;
+  margin-bottom: 6px;
+  font-size: 0.9em;
+}
+
+.content-preview .project-description {
+  margin-top: 4px;
+  margin-bottom: 6px;
+  font-size: 0.9em;
+}
+
+/* Award styles */
+.content-preview .award-item {
+  margin-bottom: 10px;
+  padding-left: 5px;
+  border-left: 2px solid var(--primary-color);
+}
+
+.content-preview .award-title {
+  font-weight: bold;
+  color: var(--text-color);
+  margin-bottom: 3px;
+}
+
+.content-preview .award-description {
+  margin-left: 15px;
+  font-size: 0.9em;
+  color: var(--light-text);
 }
 
 /* Settings Section */

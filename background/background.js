@@ -286,13 +286,26 @@ PROFESSIONAL_SUMMARY: A concise, compelling summary (3-4 sentences) that highlig
   
   if (outputs.includes('experience_bullets')) {
     prompt += `
-EXPERIENCE_BULLETS: 4-5 achievement-oriented bullet points that showcase the candidate's most relevant experience for this job. Each bullet should follow the STAR format (Situation, Task, Action, Result) and include quantifiable achievements where possible.
+EXPERIENCE_BULLETS: For each organization/company in the resume, provide 5-6 achievement-oriented bullet points that showcase the candidate's most relevant experience for this job. Structure the output as an array of organization objects, each containing:
+- organization_name: The name of the company/organization
+- position: The candidate's position/title
+- date: The employment period (if available)
+- bullets: Array of 5-6 bullet points that follow the STAR format (Situation, Task, Action, Result) and include quantifiable achievements where possible
+
+IMPORTANT: Each bullet point should be a complete, well-formatted statement following the STAR format. DO NOT use "Situation:", "Task:", "Action:", "Result:" prefixes in the bullets. Instead, craft each bullet as a cohesive professional statement that incorporates these elements naturally. For example:
+- "Redesigned the customer dashboard using React and Material UI, reducing page load time by 40% and increasing user engagement by 25%"
+- "Led a team of 5 developers to implement a new payment processing system that reduced transaction errors by 30% and improved checkout completion rate by 15%"
 `;
   }
   
   if (outputs.includes('education')) {
     prompt += `
-EDUCATION: Format the candidate's educational background in a clear, concise way. Include degree(s), institution(s), graduation year(s), and any relevant honors or achievements. If the resume lacks education details, create a professional format based on the candidate's apparent experience level. Format in a way that's easy to parse for job application systems.
+EDUCATION: Structure the candidate's educational background as an array of education objects. For each education entry, include:
+- institution: The name of the educational institution
+- degree: The degree or certification obtained
+- field: The field of study or major
+- date: The graduation year or attendance period
+- achievements: Any notable achievements, honors, or relevant details (optional)
 `;
   }
   
@@ -304,13 +317,23 @@ SKILLS: A list of 8-10 relevant skills the candidate possesses that match the jo
   
   if (outputs.includes('awards')) {
     prompt += `
-AWARDS: List 3-5 notable achievements, honors, or awards from the candidate's resume that are relevant to the job. If none are explicitly mentioned, derive potential achievements based on their experience. Format each with the title/name of achievement, year received, and a brief description of its significance.
+AWARDS: Structure notable achievements, honors, or awards as an array of award objects. For each award/achievement, include:
+- title: The title or name of the award/achievement
+- date: Year or date when received
+- organization: The organization that granted the award (if applicable)
+- description: Brief description of the significance or what it was awarded for
 `;
   }
   
   if (outputs.includes('projects')) {
     prompt += `
-PROJECTS: Detail 2-4 relevant projects from the candidate's background that showcase skills needed for this job. For each, include project name, timeline, role, technologies used, and 1-2 bullet points highlighting key contributions or outcomes. If not explicit in their resume, derive relevant projects based on their experience.
+PROJECTS: Structure relevant projects as an array of project objects. For each project, include:
+- project_name: Name of the project
+- date: Timeline of the project
+- role: The candidate's role in the project
+- technologies: Technologies, tools or skills used
+- description: Brief description of the project
+- achievements: 2-3 bullet points highlighting key contributions or outcomes
 `;
   }
   
@@ -328,31 +351,132 @@ PROFESSIONAL_SUMMARY:
 (Your summary content here...)
 
 EXPERIENCE_BULLETS:
-(Your experience bullets here...)
+- Company/Organization 1: [Position] [Date Range]
+  - Developed a cloud-based architecture using AWS services, resulting in 99.9% uptime and 30% cost reduction compared to previous on-premises solution
+  - Led migration of legacy systems to microservices architecture, improving deployment frequency from monthly to daily releases
+  - Created comprehensive API documentation and developer portal, reducing onboarding time for new team members by 50%
+  - Implemented automated CI/CD pipeline using Jenkins and Docker, decreasing deployment failures by 75%
+  - Optimized database queries and implemented caching strategies, reducing average response time from 2.5s to 0.8s
+  
+- Company/Organization 2: [Position] [Date Range]
+  - Redesigned mobile app UI/UX based on user feedback, increasing user retention by 35% and app store ratings from 3.2 to 4.7
+  - Developed cross-platform functionality using React Native, reducing codebase size by 40% while maintaining feature parity
+  - Implemented analytics tracking that identified key drop-off points, leading to targeted improvements that increased conversion by 28%
+  - Created automated testing suite covering 85% of code, reducing reported bugs by 62% in first three months after deployment
+  - Collaborated with marketing team to implement A/B testing framework, enabling data-driven decisions that improved click-through rates by 45%
 
 EDUCATION:
-(Your education details here...)
+- Institution 1: [Degree] in [Field], [Date]
+  - Achievement/Honor 1 (if applicable)
+- Institution 2: [Degree] in [Field], [Date]
 
 SKILLS:
 (Your skills list here...)
 
 AWARDS:
-(Your awards/achievements here...)
+- Award Title 1, [Date], [Organization]
+  - Description of significance
+- Award Title 2, [Date], [Organization]
+  - Description of significance
 
 PROJECTS:
-(Your projects here...)
+- Project Name 1: [Date]
+  - Role: [Your Role]
+  - Technologies: [Technologies used]
+  - Description: Brief description
+  - Achievements:
+    - Achievement 1
+    - Achievement 2
+- Project Name 2: [Date]
+  - Role: [Your Role]
+  - Technologies: [Technologies used]
+  - Description: Brief description
+  - Achievements:
+    - Achievement 1
+    - Achievement 2
 
 COVER_LETTER:
 (Your cover letter here...)
 
-Try to format your response as JSON if possible, like this:
+Try to format your response strictly as JSON, like this:
 {
   "professional_summary": "The generated summary text...",
-  "experience_bullets": "The generated bullet points...",
-  "education": "The generated education details...",
+  "experience_bullets": [
+    {
+      "organization_name": "Company/Organization 1",
+      "position": "Job Title",
+      "date": "Jan 2020 - Present",
+      "bullets": [
+        "Achievement bullet point 1",
+        "Achievement bullet point 2",
+        "Achievement bullet point 3"
+      ]
+    },
+    {
+      "organization_name": "Company/Organization 2",
+      "position": "Job Title",
+      "date": "Jan 2018 - Dec 2019",
+      "bullets": [
+        "Achievement bullet point 1",
+        "Achievement bullet point 2"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "University Name",
+      "degree": "Bachelor of Science",
+      "field": "Computer Science",
+      "date": "2014-2018",
+      "achievements": "Graduated with honors, Dean's List all semesters"
+    },
+    {
+      "institution": "Another University",
+      "degree": "Master's Degree",
+      "field": "Data Science",
+      "date": "2019-2021",
+      "achievements": "Research assistant, Published paper on ML"
+    }
+  ],
   "skills": "The generated skills list...",
-  "awards": "The generated awards/achievements...",
-  "projects": "The generated projects...",
+  "awards": [
+    {
+      "title": "Employee of the Year",
+      "date": "2021",
+      "organization": "ABC Company",
+      "description": "Awarded for exceptional performance and leadership"
+    },
+    {
+      "title": "Innovation Award",
+      "date": "2019",
+      "organization": "Industry Association",
+      "description": "Recognized for developing a novel solution that improved efficiency by 35%"
+    }
+  ],
+  "projects": [
+    {
+      "project_name": "Project Name 1",
+      "date": "Jan 2021 - Mar 2021",
+      "role": "Lead Developer",
+      "technologies": "React, Node.js, MongoDB",
+      "description": "Brief description of the project and its purpose",
+      "achievements": [
+        "Increased performance by 40%",
+        "Implemented CI/CD pipeline"
+      ]
+    },
+    {
+      "project_name": "Project Name 2",
+      "date": "Jun 2020 - Dec 2020",
+      "role": "Backend Developer",
+      "technologies": "Python, Django, PostgreSQL",
+      "description": "Brief description of the project",
+      "achievements": [
+        "Designed scalable database architecture",
+        "Implemented automated testing"
+      ]
+    }
+  ],
   "cover_letter": "The generated cover letter..."
 }
 `;
@@ -748,11 +872,719 @@ function parseAIResponse(responseText, requestedOutputs) {
   }
   
   if (requestedOutputs.includes('experience_bullets')) {
-    result.experience = sections.experiencebullets || sections.experience || '';
+    const experience = sections.experiencebullets || sections.experience || '';
+    
+    // Check if the experience is already an array of organization objects
+    if (Array.isArray(experience) && experience.length > 0 && typeof experience[0] === 'object') {
+      // Fix any STAR format issues in the bullets
+      const fixedExperience = experience.map(org => {
+        // Clone the organization object
+        const newOrg = { ...org };
+        
+        // Check if bullets need fixing
+        if (Array.isArray(newOrg.bullets)) {
+          newOrg.bullets = newOrg.bullets.map(bullet => {
+            // Check if the bullet has STAR prefixes
+            if (typeof bullet === 'string' && 
+                (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+                 bullet.includes('Action:') || bullet.includes('Result:'))) {
+              
+              // Handle combined STAR format (all elements in one bullet)
+              if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+                  bullet.includes('Action:') && bullet.includes('Result:')) {
+                
+                // Extract the components
+                const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+                const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+                const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+                const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+                
+                // Combine into a proper bullet
+                let situation = situationMatch ? situationMatch[1].trim() : '';
+                let task = taskMatch ? taskMatch[1].trim() : '';
+                let action = actionMatch ? actionMatch[1].trim() : '';
+                let result = resultMatch ? resultMatch[1].trim() : '';
+                
+                // Construct a proper bullet point
+                return `While ${situation}, ${task}. ${action}, ${result}`.replace(/\s{2,}/g, ' ');
+              }
+              
+              // Remove the prefixes and format as a coherent statement
+              return bullet.replace(/Situation:\s*/i, '')
+                           .replace(/Task:\s*/i, '')
+                           .replace(/Action:\s*/i, '')
+                           .replace(/Result:\s*/i, '')
+                           .replace(/\s{2,}/g, ' ');
+            }
+            
+            return bullet;
+          });
+        }
+        
+        return newOrg;
+      });
+      
+      result.experience = fixedExperience;
+    } else if (Array.isArray(experience) && experience.length > 0 && typeof experience[0] === 'string') {
+      // Handle old-style array of strings by converting to organizational format
+      // Extract STAR elements if present and combine them
+      const fixedBullets = experience.map(bullet => {
+        if (typeof bullet === 'string' && 
+            (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+             bullet.includes('Action:') || bullet.includes('Result:'))) {
+          
+          // Handle combined STAR format
+          if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+              bullet.includes('Action:') && bullet.includes('Result:')) {
+            
+            // Extract the components
+            const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+            const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+            const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+            const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+            
+            // Combine into a proper bullet
+            let situation = situationMatch ? situationMatch[1].trim() : '';
+            let task = taskMatch ? taskMatch[1].trim() : '';
+            let action = actionMatch ? actionMatch[1].trim() : '';
+            let result = resultMatch ? resultMatch[1].trim() : '';
+            
+            return `While working ${situation}, ${task}. ${action}, resulting in ${result}`.replace(/\s{2,}/g, ' ');
+          }
+          
+          // Remove the prefixes and format as a coherent statement
+          return bullet.replace(/Situation:\s*/i, '')
+                       .replace(/Task:\s*/i, '')
+                       .replace(/Action:\s*/i, '')
+                       .replace(/Result:\s*/i, '')
+                       .replace(/\s{2,}/g, ' ');
+        }
+        
+        return bullet;
+      });
+      
+      // Try to organize by company using pattern recognition
+      const companies = new Map();
+      let currentCompany = "Experience";
+      
+      // Look for company patterns
+      experience.forEach(line => {
+        const companyMatch = line.match(/^(?:At|While at|Working at|For)\s+([^,]+)/i);
+        if (companyMatch) {
+          currentCompany = companyMatch[1].trim();
+          if (!companies.has(currentCompany)) {
+            companies.set(currentCompany, []);
+          }
+        } else if (companies.has(currentCompany)) {
+          companies.get(currentCompany).push(line);
+        }
+      });
+      
+      // If we found companies, create organization objects
+      if (companies.size > 0) {
+        result.experience = Array.from(companies.entries()).map(([company, bullets]) => {
+          return {
+            organization_name: company,
+            position: "",
+            date: "",
+            bullets: bullets
+          };
+        });
+      } else {
+        result.experience = [{
+          organization_name: "Experience",
+          position: "",
+          date: "",
+          bullets: fixedBullets
+        }];
+      }
+    } else if (typeof experience === 'string') {
+      // Parse the string to extract company/organization structures
+      try {
+        // Check if the text has STAR format elements that need fixing
+        const starFormatRegex = /Situation:\s*([^,;.]*),?\s*Task:\s*([^,;.]*),?\s*Action:\s*([^,;.]*),?\s*Result:\s*([^,;.]*)/gi;
+        let fixedExperience = experience;
+        let match;
+        
+        while ((match = starFormatRegex.exec(experience)) !== null) {
+          const [fullMatch, situation, task, action, result] = match;
+          const replacement = `While working ${situation.trim()}, ${task.trim()}. ${action.trim()}, resulting in ${result.trim()}`;
+          fixedExperience = fixedExperience.replace(fullMatch, replacement);
+        }
+        
+        // Continue with regular parsing...
+        // Check for company/organization pattern
+        const companyRegex = /(?:^|\n)[-•*]?\s*([^:]+):\s*(?:\[([^\]]+)\])?\s*(?:\[([^\]]+)\])?\s*\n((?:\s*[-•*]\s*.+\n?)+)/gm;
+        let matches = Array.from(fixedExperience.matchAll(companyRegex));
+        
+        if (matches && matches.length > 0) {
+          // We found structured company entries
+          result.experience = matches.map(match => {
+            const orgName = match[1].trim();
+            let position = match[2] ? match[2].trim() : "";
+            let date = match[3] ? match[3].trim() : "";
+            
+            // If position is empty but date is not, they might be switched
+            if (!position && date) {
+              // Check if "date" looks more like a position
+              if (!date.match(/\d{4}/) && !date.match(/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i)) {
+                position = date;
+                date = "";
+              }
+            }
+            
+            // Extract bullets
+            const bulletsText = match[4].trim();
+            const bullets = bulletsText.split('\n')
+              .map(line => line.trim().replace(/^[-•*]\s*/, ''))
+              .filter(line => line.length > 0)
+              .map(bullet => {
+                // Fix STAR format issues
+                if (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+                    bullet.includes('Action:') || bullet.includes('Result:')) {
+                  
+                  // Extract components if all are present
+                  if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+                      bullet.includes('Action:') && bullet.includes('Result:')) {
+                    
+                    const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+                    const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+                    const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+                    const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+                    
+                    let situation = situationMatch ? situationMatch[1].trim() : '';
+                    let task = taskMatch ? taskMatch[1].trim() : '';
+                    let action = actionMatch ? actionMatch[1].trim() : '';
+                    let result = resultMatch ? resultMatch[1].trim() : '';
+                    
+                    return `While working ${situation}, ${task}. ${action}, resulting in ${result}`.replace(/\s{2,}/g, ' ');
+                  }
+                  
+                  // Remove prefixes
+                  return bullet.replace(/Situation:\s*/i, '')
+                               .replace(/Task:\s*/i, '')
+                               .replace(/Action:\s*/i, '')
+                               .replace(/Result:\s*/i, '')
+                               .replace(/\s{2,}/g, ' ');
+                }
+                
+                return bullet;
+              });
+            
+            return {
+              organization_name: orgName,
+              position: position,
+              date: date,
+              bullets: bullets
+            };
+          });
+        } else {
+          // Try extracting companies from the text
+          const companyMentionRegex = /(?:^|\n)(?:At|While at|Working at|For)\s+([^,]+)/gim;
+          const companyMatches = Array.from(fixedExperience.matchAll(companyMentionRegex));
+          
+          if (companyMatches && companyMatches.length > 0) {
+            // Split content by company mentions
+            let lastIndex = 0;
+            const companyContents = [];
+            
+            companyMatches.forEach((match, index) => {
+              const companyName = match[1].trim();
+              const startIndex = match.index;
+              
+              // For all but the first company, add the previous company's content
+              if (index > 0) {
+                const previousCompany = companyMatches[index - 1][1].trim();
+                const content = fixedExperience.substring(lastIndex, startIndex).trim();
+                companyContents.push({ company: previousCompany, content });
+              }
+              
+              lastIndex = startIndex;
+              
+              // For the last company, add its content
+              if (index === companyMatches.length - 1) {
+                const content = fixedExperience.substring(startIndex).trim();
+                companyContents.push({ company: companyName, content });
+              }
+            });
+            
+            // Process each company's content into bullets
+            result.experience = companyContents.map(item => {
+              // Extract bullets from content
+              const bullets = item.content.split(/\n|(?:\.)\s+/)
+                .map(line => line.trim())
+                .filter(line => line.length > 0 && !line.match(/^(?:At|While at|Working at|For)\s+/i))
+                .map(bullet => {
+                  // Fix STAR format issues
+                  if (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+                      bullet.includes('Action:') || bullet.includes('Result:')) {
+                    
+                    // Same STAR fixing logic as above
+                    // ...
+                    
+                    // Extract components if all are present
+                    if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+                        bullet.includes('Action:') && bullet.includes('Result:')) {
+                      
+                      const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+                      const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+                      const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+                      const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+                      
+                      let situation = situationMatch ? situationMatch[1].trim() : '';
+                      let task = taskMatch ? taskMatch[1].trim() : '';
+                      let action = actionMatch ? actionMatch[1].trim() : '';
+                      let result = resultMatch ? resultMatch[1].trim() : '';
+                      
+                      return `While working ${situation}, ${task}. ${action}, resulting in ${result}`.replace(/\s{2,}/g, ' ');
+                    }
+                    
+                    // Remove prefixes
+                    return bullet.replace(/Situation:\s*/i, '')
+                                 .replace(/Task:\s*/i, '')
+                                 .replace(/Action:\s*/i, '')
+                                 .replace(/Result:\s*/i, '')
+                                 .replace(/\s{2,}/g, ' ');
+                  }
+                  
+                  return bullet;
+                });
+              
+              return {
+                organization_name: item.company,
+                position: "",
+                date: "",
+                bullets: bullets
+              };
+            });
+          } else {
+            // Try another regex pattern for different formats
+            const altCompanyRegex = /(?:^|\n)(.*?)\n(.*?)\n((?:\s*[-•*].*\n?)+)/gm;
+            matches = Array.from(fixedExperience.matchAll(altCompanyRegex));
+            
+            if (matches && matches.length > 0) {
+              result.experience = matches.map(match => {
+                // Processing similar to earlier code...
+                // ...
+                
+                const line1 = match[1].trim();
+                const line2 = match[2].trim();
+                
+                // Try to determine if line1 is company and line2 is position/date
+                // or if line1 is position and line2 is date
+                let orgName, position, date;
+                
+                // If line2 contains date-like patterns, treat line1 as organization + position
+                if (line2.match(/\d{4}/) || line2.match(/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i) || 
+                    line2.match(/present|current|ongoing/i)) {
+                  // Line2 is likely a date
+                  date = line2;
+                  
+                  // Try to extract company and position from line1
+                  const positionMatch = line1.match(/(.*?)\s*[-–|,]\s*(.*)/);
+                  if (positionMatch) {
+                    orgName = positionMatch[1].trim();
+                    position = positionMatch[2].trim();
+                  } else {
+                    orgName = line1;
+                    position = "";
+                  }
+                } else {
+                  // Assume line1 is organization and line2 is position
+                  orgName = line1;
+                  position = line2;
+                  date = "";
+                }
+                
+                // Extract bullets with STAR format fixing
+                const bulletsText = match[3].trim();
+                const bullets = bulletsText.split('\n')
+                  .map(line => line.trim().replace(/^[-•*]\s*/, ''))
+                  .filter(line => line.length > 0)
+                  .map(bullet => {
+                    // Fix STAR format issues (same logic as above)
+                    if (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+                        bullet.includes('Action:') || bullet.includes('Result:')) {
+                      
+                      // Extract components if all are present
+                      if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+                          bullet.includes('Action:') && bullet.includes('Result:')) {
+                        
+                        const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+                        const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+                        const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+                        const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+                        
+                        let situation = situationMatch ? situationMatch[1].trim() : '';
+                        let task = taskMatch ? taskMatch[1].trim() : '';
+                        let action = actionMatch ? actionMatch[1].trim() : '';
+                        let result = resultMatch ? resultMatch[1].trim() : '';
+                        
+                        return `While working ${situation}, ${task}. ${action}, resulting in ${result}`.replace(/\s{2,}/g, ' ');
+                      }
+                      
+                      // Remove prefixes
+                      return bullet.replace(/Situation:\s*/i, '')
+                                   .replace(/Task:\s*/i, '')
+                                   .replace(/Action:\s*/i, '')
+                                   .replace(/Result:\s*/i, '')
+                                   .replace(/\s{2,}/g, ' ');
+                    }
+                    
+                    return bullet;
+                  });
+                
+                return {
+                  organization_name: orgName,
+                  position: position,
+                  date: date,
+                  bullets: bullets
+                };
+              });
+            } else {
+              // If no company structure detected, try to identify companies based on mentions
+              const bulletsWithCompany = fixedExperience.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => line.replace(/^[-•*]\s*/, ''));
+              
+              // Group by company if possible
+              const companyMap = new Map();
+              let currentCompany = 'Experience';
+              
+              bulletsWithCompany.forEach(bullet => {
+                const companyMatch = bullet.match(/^(?:At|While at|Working at|For)\s+([^,]+)/i);
+                
+                if (companyMatch) {
+                  currentCompany = companyMatch[1].trim();
+                  if (!companyMap.has(currentCompany)) {
+                    companyMap.set(currentCompany, []);
+                  }
+                } else if (companyMap.has(currentCompany)) {
+                  // Check for and fix STAR format issues
+                  let processedBullet = bullet;
+                  
+                  if (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+                      bullet.includes('Action:') || bullet.includes('Result:')) {
+                    
+                    // Extract components if all are present
+                    if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+                        bullet.includes('Action:') && bullet.includes('Result:')) {
+                      
+                      const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+                      const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+                      const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+                      const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+                      
+                      let situation = situationMatch ? situationMatch[1].trim() : '';
+                      let task = taskMatch ? taskMatch[1].trim() : '';
+                      let action = actionMatch ? actionMatch[1].trim() : '';
+                      let result = resultMatch ? resultMatch[1].trim() : '';
+                      
+                      processedBullet = `While working ${situation}, ${task}. ${action}, resulting in ${result}`.replace(/\s{2,}/g, ' ');
+                    } else {
+                      // Remove prefixes
+                      processedBullet = bullet.replace(/Situation:\s*/i, '')
+                                               .replace(/Task:\s*/i, '')
+                                               .replace(/Action:\s*/i, '')
+                                               .replace(/Result:\s*/i, '')
+                                               .replace(/\s{2,}/g, ' ');
+                    }
+                  }
+                  
+                  companyMap.get(currentCompany).push(processedBullet);
+                } else {
+                  // Default company if none found
+                  if (!companyMap.has('Experience')) {
+                    companyMap.set('Experience', []);
+                  }
+                  
+                  // Check for and fix STAR format issues (same logic as above)
+                  let processedBullet = bullet;
+                  
+                  if (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+                      bullet.includes('Action:') || bullet.includes('Result:')) {
+                    
+                    // Extract components if all are present
+                    if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+                        bullet.includes('Action:') && bullet.includes('Result:')) {
+                      
+                      const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+                      const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+                      const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+                      const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+                      
+                      let situation = situationMatch ? situationMatch[1].trim() : '';
+                      let task = taskMatch ? taskMatch[1].trim() : '';
+                      let action = actionMatch ? actionMatch[1].trim() : '';
+                      let result = resultMatch ? resultMatch[1].trim() : '';
+                      
+                      processedBullet = `While working ${situation}, ${task}. ${action}, resulting in ${result}`.replace(/\s{2,}/g, ' ');
+                    } else {
+                      // Remove prefixes
+                      processedBullet = bullet.replace(/Situation:\s*/i, '')
+                                               .replace(/Task:\s*/i, '')
+                                               .replace(/Action:\s*/i, '')
+                                               .replace(/Result:\s*/i, '')
+                                               .replace(/\s{2,}/g, ' ');
+                    }
+                  }
+                  
+                  companyMap.get('Experience').push(processedBullet);
+                }
+              });
+              
+              if (companyMap.size > 0) {
+                result.experience = Array.from(companyMap.entries()).map(([company, bullets]) => {
+                  return {
+                    organization_name: company,
+                    position: "",
+                    date: "",
+                    bullets: bullets
+                  };
+                });
+              } else {
+                // Simple bullet point list as fallback
+                const bullets = experience.split('\n')
+                  .map(line => line.trim())
+                  .filter(line => line.length > 0)
+                  .map(line => line.replace(/^[-•*]\s*/, ''))
+                  .map(bullet => {
+                    // Fix STAR format issues (same logic as above)
+                    if (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+                        bullet.includes('Action:') || bullet.includes('Result:')) {
+                      
+                      // Extract components if all are present
+                      if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+                          bullet.includes('Action:') && bullet.includes('Result:')) {
+                        
+                        const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+                        const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+                        const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+                        const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+                        
+                        let situation = situationMatch ? situationMatch[1].trim() : '';
+                        let task = taskMatch ? taskMatch[1].trim() : '';
+                        let action = actionMatch ? actionMatch[1].trim() : '';
+                        let result = resultMatch ? resultMatch[1].trim() : '';
+                        
+                        return `While working ${situation}, ${task}. ${action}, resulting in ${result}`.replace(/\s{2,}/g, ' ');
+                      }
+                      
+                      // Remove prefixes
+                      return bullet.replace(/Situation:\s*/i, '')
+                                   .replace(/Task:\s*/i, '')
+                                   .replace(/Action:\s*/i, '')
+                                   .replace(/Result:\s*/i, '')
+                                   .replace(/\s{2,}/g, ' ');
+                    }
+                    
+                    return bullet;
+                  });
+                
+                if (bullets.length > 0) {
+                  result.experience = [{
+                    organization_name: "Experience",
+                    position: "",
+                    date: "",
+                    bullets: bullets
+                  }];
+                } else {
+                  result.experience = [{
+                    organization_name: "Experience",
+                    position: "",
+                    date: "",
+                    bullets: [experience]
+                  }];
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing experience structure:', e);
+        // Fallback to simple format with STAR issues fixed
+        const bullets = experience.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .map(line => line.replace(/^[-•*]\s*/, ''))
+          .map(bullet => {
+            // Fix STAR format issues (same logic as above)
+            if (bullet.startsWith('Situation:') || bullet.includes('Task:') || 
+                bullet.includes('Action:') || bullet.includes('Result:')) {
+              
+              // Extract components if all are present
+              if (bullet.includes('Situation:') && bullet.includes('Task:') && 
+                  bullet.includes('Action:') && bullet.includes('Result:')) {
+                
+                const situationMatch = bullet.match(/Situation:\s*([^,;.]*)/i);
+                const taskMatch = bullet.match(/Task:\s*([^,;.]*)/i);
+                const actionMatch = bullet.match(/Action:\s*([^,;.]*)/i);
+                const resultMatch = bullet.match(/Result:\s*([^,;.]*)/i);
+                
+                let situation = situationMatch ? situationMatch[1].trim() : '';
+                let task = taskMatch ? taskMatch[1].trim() : '';
+                let action = actionMatch ? actionMatch[1].trim() : '';
+                let result = resultMatch ? resultMatch[1].trim() : '';
+                
+                return `While working ${situation}, ${task}. ${action}, resulting in ${result}`.replace(/\s{2,}/g, ' ');
+              }
+              
+              // Remove prefixes
+              return bullet.replace(/Situation:\s*/i, '')
+                           .replace(/Task:\s*/i, '')
+                           .replace(/Action:\s*/i, '')
+                           .replace(/Result:\s*/i, '')
+                           .replace(/\s{2,}/g, ' ');
+            }
+            
+            return bullet;
+          });
+        
+        result.experience = [{
+          organization_name: "Experience",
+          position: "",
+          date: "",
+          bullets: bullets
+        }];
+      }
+    } else {
+      // Empty or invalid format
+      result.experience = [{
+        organization_name: "Experience",
+        position: "",
+        date: "",
+        bullets: ["No experience data available"]
+      }];
+    }
   }
   
   if (requestedOutputs.includes('education')) {
-    result.education = sections.education || '';
+    const education = sections.education || '';
+    
+    // Check if education is already an array of objects
+    if (Array.isArray(education) && education.length > 0 && typeof education[0] === 'object') {
+      // Already in the right format, use as is
+      result.education = education;
+    } else if (typeof education === 'string') {
+      // Try to parse the string into structured education objects
+      try {
+        // Check for education pattern like "Institution: Degree in Field, Date"
+        const educationRegex = /(?:^|\n)[-•*]?\s*([^:]+):\s*([^,]+),\s*([^\n]+)(?:\n(?:\s*[-•*]\s*(.+)\n?)?)?/gm;
+        let matches = Array.from(education.matchAll(educationRegex));
+        
+        if (matches && matches.length > 0) {
+          // We found structured education entries
+          result.education = matches.map(match => {
+            const institution = match[1].trim();
+            const degreeField = match[2].trim();
+            const date = match[3].trim();
+            const achievements = match[4] ? match[4].trim() : '';
+            
+            // Try to split degree and field if possible
+            let degree = '', field = '';
+            const degreeFieldMatch = degreeField.match(/([^i]+)\s+in\s+(.+)/i);
+            if (degreeFieldMatch) {
+              degree = degreeFieldMatch[1].trim();
+              field = degreeFieldMatch[2].trim();
+            } else {
+              degree = degreeField;
+            }
+            
+            return {
+              institution: institution,
+              degree: degree,
+              field: field,
+              date: date,
+              achievements: achievements
+            };
+          });
+        } else {
+          // Try an alternative format
+          const altEducationRegex = /(?:^|\n)(.*?)(?:\n(.*?))(?:\n(.*?))?(?:\n((?:\s*[-•*].*\n?)+))?/gm;
+          matches = Array.from(education.matchAll(altEducationRegex));
+          
+          if (matches && matches.length > 0) {
+            result.education = matches.map(match => {
+              // Try to identify the pieces
+              const lines = [match[1], match[2], match[3]].filter(Boolean).map(l => l.trim());
+              
+              let institution = '', degree = '', field = '', date = '', achievements = '';
+              
+              // Look for date patterns
+              for (let i = 0; i < lines.length; i++) {
+                if (lines[i].match(/\d{4}/) || lines[i].match(/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i)) {
+                  date = lines[i];
+                  lines.splice(i, 1);
+                  break;
+                }
+              }
+              
+              // Look for degree patterns
+              for (let i = 0; i < lines.length; i++) {
+                if (lines[i].match(/bachelor|master|phd|doctor|certificate|diploma/i)) {
+                  const parts = lines[i].split(/\s+in\s+/i);
+                  if (parts.length > 1) {
+                    degree = parts[0].trim();
+                    field = parts[1].trim();
+                  } else {
+                    degree = lines[i];
+                  }
+                  lines.splice(i, 1);
+                  break;
+                }
+              }
+              
+              // Assume first remaining line is institution
+              if (lines.length > 0) {
+                institution = lines[0];
+              }
+              
+              // Look for achievements in remaining text
+              if (match[4]) {
+                achievements = match[4].trim();
+              }
+              
+              return {
+                institution: institution,
+                degree: degree,
+                field: field,
+                date: date,
+                achievements: achievements
+              };
+            });
+          } else {
+            // If no structure is detected, use the text as is
+            result.education = [{
+              institution: "Education",
+              degree: "",
+              field: "",
+              date: "",
+              achievements: education
+            }];
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing education structure:', e);
+        // Fallback to simple format
+        result.education = [{
+          institution: "Education",
+          degree: "",
+          field: "",
+          date: "",
+          achievements: education
+        }];
+      }
+    } else {
+      // Empty or invalid format
+      result.education = [{
+        institution: "Education",
+        degree: "",
+        field: "",
+        date: "",
+        achievements: "No education data available"
+      }];
+    }
   }
   
   if (requestedOutputs.includes('skills')) {
@@ -760,11 +1592,265 @@ function parseAIResponse(responseText, requestedOutputs) {
   }
   
   if (requestedOutputs.includes('awards')) {
-    result.awards = sections.awards || sections.achievements || '';
+    const awards = sections.awards || sections.achievements || '';
+    
+    // Check if awards is already an array of objects
+    if (Array.isArray(awards) && awards.length > 0 && typeof awards[0] === 'object') {
+      // Already in the right format, use as is
+      result.awards = awards;
+    } else if (Array.isArray(awards) && awards.length > 0 && typeof awards[0] === 'string') {
+      // Simple array of strings - convert to structured format
+      result.awards = awards.map(award => {
+        // Try to parse into components (title, date, org, description)
+        const parts = award.split(/,\s*/);
+        let title = award;
+        let date = '';
+        let organization = '';
+        let description = '';
+        
+        if (parts.length >= 2) {
+          title = parts[0].trim();
+          // Check if second part is a date (contains numbers)
+          if (parts[1].match(/\d+/)) {
+            date = parts[1].trim();
+            if (parts.length >= 3) {
+              organization = parts[2].trim();
+              if (parts.length >= 4) {
+                description = parts.slice(3).join(', ').trim();
+              }
+            }
+          } else {
+            // If second part isn't a date, assume it's organization
+            organization = parts[1].trim();
+            if (parts.length >= 3) {
+              description = parts.slice(2).join(', ').trim();
+            }
+          }
+        }
+        
+        return {
+          title: title,
+          date: date,
+          organization: organization,
+          description: description
+        };
+      });
+    } else if (typeof awards === 'string') {
+      // Try to parse the string into structured awards
+      try {
+        // Check for award pattern
+        const awardRegex = /(?:^|\n)[-•*]?\s*([^,]+),\s*([^,]+)(?:,\s*([^,]+))?(?:,\s*(.+))?/gm;
+        let matches = Array.from(awards.matchAll(awardRegex));
+        
+        if (matches && matches.length > 0) {
+          // We found structured award entries
+          result.awards = matches.map(match => {
+            return {
+              title: match[1]?.trim() || '',
+              date: match[2]?.trim() || '',
+              organization: match[3]?.trim() || '',
+              description: match[4]?.trim() || ''
+            };
+          });
+        } else {
+          // If no clear structure, split by lines and treat each line as a title
+          const awardLines = awards.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .map(line => line.replace(/^[-•*]\s*/, ''));
+          
+          if (awardLines.length > 0) {
+            result.awards = awardLines.map(line => ({
+              title: line,
+              date: '',
+              organization: '',
+              description: ''
+            }));
+          } else {
+            result.awards = [{
+              title: awards,
+              date: '',
+              organization: '',
+              description: ''
+            }];
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing awards structure:', e);
+        // Fallback to simple format
+        result.awards = [{
+          title: awards,
+          date: '',
+          organization: '',
+          description: ''
+        }];
+      }
+    } else {
+      // Empty or invalid format
+      result.awards = [{
+        title: 'No awards data available',
+        date: '',
+        organization: '',
+        description: ''
+      }];
+    }
   }
   
   if (requestedOutputs.includes('projects')) {
-    result.projects = sections.projects || '';
+    const projects = sections.projects || '';
+    
+    // Check if projects is already an array of objects
+    if (Array.isArray(projects) && projects.length > 0 && typeof projects[0] === 'object') {
+      // Already in the right format, use as is
+      result.projects = projects;
+    } else if (typeof projects === 'string') {
+      // Try to parse the string into structured project objects
+      try {
+        // Check for project pattern like "Project Name: [Date]" followed by details
+        const projectRegex = /(?:^|\n)[-•*]?\s*([^:]+):\s*([^\n]+)(?:\n(?:\s*[-•*]\s*(?:Role|Technologies|Description|Achievements):\s*(.+)\n?)+)?/gm;
+        let matches = Array.from(projects.matchAll(projectRegex));
+        
+        if (matches && matches.length > 0) {
+          // We found project headers, now extract details for each
+          result.projects = matches.map(match => {
+            const projectName = match[1].trim();
+            const date = match[2].trim();
+            
+            // Initialize the project object
+            const projectObj = {
+              project_name: projectName,
+              date: date,
+              role: "",
+              technologies: "",
+              description: "",
+              achievements: []
+            };
+            
+            // If there are details, extract them
+            if (match[0]) {
+              const fullMatch = match[0];
+              
+              // Extract role
+              const roleMatch = fullMatch.match(/Role:\s*([^\n]+)/);
+              if (roleMatch) projectObj.role = roleMatch[1].trim();
+              
+              // Extract technologies
+              const techMatch = fullMatch.match(/Technologies:\s*([^\n]+)/);
+              if (techMatch) projectObj.technologies = techMatch[1].trim();
+              
+              // Extract description
+              const descMatch = fullMatch.match(/Description:\s*([^\n]+)/);
+              if (descMatch) projectObj.description = descMatch[1].trim();
+              
+              // Extract achievements
+              const achievementsMatch = fullMatch.match(/Achievements:\s*([\s\S]*?)(?=\n\s*[-•*]|$)/);
+              if (achievementsMatch) {
+                // Split achievements into bullet points
+                const achievementsText = achievementsMatch[1].trim();
+                projectObj.achievements = achievementsText.split('\n')
+                  .map(line => line.trim().replace(/^[-•*]\s*/, ''))
+                  .filter(line => line.length > 0);
+              }
+            }
+            
+            return projectObj;
+          });
+        } else {
+          // Try an alternative format with project sections
+          const altProjectRegex = /(?:^|\n)(.*?)\n((?:.*\n)+?(?:\s*[-•*].*\n?)+)/gm;
+          matches = Array.from(projects.matchAll(altProjectRegex));
+          
+          if (matches && matches.length > 0) {
+            result.projects = matches.map(match => {
+              const header = match[1].trim();
+              const details = match[2].trim();
+              
+              // Try to extract project name and date from header
+              let projectName = header;
+              let date = "";
+              
+              const headerMatch = header.match(/(.*?)(?:\s*\[([^\]]+)\])?$/);
+              if (headerMatch) {
+                projectName = headerMatch[1].trim();
+                date = headerMatch[2] ? headerMatch[2].trim() : "";
+              }
+              
+              // Initialize project object
+              const projectObj = {
+                project_name: projectName,
+                date: date,
+                role: "",
+                technologies: "",
+                description: "",
+                achievements: []
+              };
+              
+              // Extract details from the content
+              const lines = details.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+              
+              // Process each line
+              lines.forEach(line => {
+                // Clean up bullets
+                const cleanLine = line.replace(/^[-•*]\s*/, '');
+                
+                // Check for labeled details
+                if (cleanLine.match(/^Role:/i)) {
+                  projectObj.role = cleanLine.replace(/^Role:\s*/i, '').trim();
+                } else if (cleanLine.match(/^Tech|Technologies:/i)) {
+                  projectObj.technologies = cleanLine.replace(/^(?:Tech|Technologies):\s*/i, '').trim();
+                } else if (cleanLine.match(/^Description:/i)) {
+                  projectObj.description = cleanLine.replace(/^Description:\s*/i, '').trim();
+                } else if (cleanLine.match(/^Achievements:/i)) {
+                  // Skip the label line, achievements are captured below
+                } else {
+                  // If no specific label, assume it's an achievement/detail
+                  projectObj.achievements.push(cleanLine);
+                }
+              });
+              
+              // If no description but we have achievements, use first achievement as description
+              if (!projectObj.description && projectObj.achievements.length > 0) {
+                projectObj.description = projectObj.achievements[0];
+                projectObj.achievements = projectObj.achievements.slice(1);
+              }
+              
+              return projectObj;
+            });
+          } else {
+            // If no structured format is detected, return as simple object
+            result.projects = [{
+              project_name: "Project",
+              date: "",
+              role: "",
+              technologies: "",
+              description: projects,
+              achievements: []
+            }];
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing projects structure:', e);
+        // Fallback to simple format
+        result.projects = [{
+          project_name: "Project",
+          date: "",
+          role: "",
+          technologies: "",
+          description: projects,
+          achievements: []
+        }];
+      }
+    } else {
+      // Empty or invalid format
+      result.projects = [{
+        project_name: "Project",
+        date: "",
+        role: "",
+        technologies: "",
+        description: "No project data available",
+        achievements: []
+      }];
+    }
   }
   
   if (requestedOutputs.includes('cover_letter')) {
@@ -776,7 +1862,7 @@ function parseAIResponse(responseText, requestedOutputs) {
     const key = output === 'professional_summary' ? 'summary' :
                  output === 'experience_bullets' ? 'experience' :
                  output === 'cover_letter' ? 'coverLetter' : output;
-    return !result[key] || result[key].trim().length === 0;
+    return !result[key] || (typeof result[key] === 'string' && result[key].trim().length === 0);
   });
   
   if (missingOutputs.length > 0) {
