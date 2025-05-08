@@ -23,13 +23,137 @@ function extractJobDescription() {
 
 // Platform-specific extractors
 function extractWorkdayJobDescription() {
-  // Workday often has the job description in a div with specific classes
+  console.log('Extracting Workday job description with improved handling');
+  
+  // First try to extract from Workday's newer UI with specific data-automation IDs
+  const jobDescriptionSection = document.querySelector('[data-automation-id="jobPostingDescription"]');
+  if (jobDescriptionSection) {
+    console.log('Found Workday job posting description with data-automation-id');
+    let fullText = '';
+    
+    // Get the job title
+    const jobTitle = document.querySelector('[data-automation-id="jobPostingHeader"]');
+    if (jobTitle) {
+      fullText += `${jobTitle.textContent.trim()}\n\n`;
+    }
+    
+    // Process paragraphs, preserving their structure
+    const paragraphs = jobDescriptionSection.querySelectorAll('p');
+    paragraphs.forEach(paragraph => {
+      const text = paragraph.textContent.trim();
+      if (text && text !== '&nbsp;') {
+        // Check if it's a heading (bold text)
+        const boldText = paragraph.querySelector('b, strong');
+        if (boldText && boldText.textContent.trim() === paragraph.textContent.trim()) {
+          fullText += `${text}\n`;
+        } else {
+          fullText += `${text}\n\n`;
+        }
+      }
+    });
+    
+    // Process lists and bullet points specifically
+    const lists = jobDescriptionSection.querySelectorAll('ul, ol');
+    lists.forEach(list => {
+      const items = list.querySelectorAll('li');
+      items.forEach(item => {
+        // Extract paragraph text from list items
+        const itemParagraph = item.querySelector('p');
+        const text = itemParagraph ? itemParagraph.textContent.trim() : item.textContent.trim();
+        if (text) {
+          fullText += `• ${text}\n`;
+        }
+      });
+      fullText += '\n';
+    });
+    
+    return fullText.trim();
+  }
+  
+  // Try Workday's older UI pattern with specific classes
   const jobPostingElements = document.querySelectorAll('.job-description, .job-posting-brief, .GWTCKEditor-Disabled');
   
   if (jobPostingElements.length > 0) {
-    return Array.from(jobPostingElements)
-      .map(el => el.textContent)
-      .join('\n\n');
+    let fullText = '';
+    
+    // Process each element, preserving the structure
+    jobPostingElements.forEach(element => {
+      // Get bullet points specifically
+      const bulletPoints = element.querySelectorAll('ul li, ol li');
+      if (bulletPoints.length > 0) {
+        // Process and preserve bullet points
+        const bulletSection = Array.from(bulletPoints)
+          .map(li => `• ${li.textContent.trim()}`)
+          .join('\n');
+        
+        fullText += bulletSection + '\n\n';
+      }
+      
+      // Get headings - often used for sections like "Responsibilities", "Requirements"
+      const headings = element.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      headings.forEach(heading => {
+        fullText += `${heading.textContent.trim()}\n`;
+        
+        // Get the content that follows this heading until the next heading
+        let currentNode = heading.nextElementSibling;
+        while (currentNode && !currentNode.matches('h1, h2, h3, h4, h5, h6')) {
+          if (currentNode.tagName === 'UL' || currentNode.tagName === 'OL') {
+            // Skip lists that we've already processed
+          } else if (currentNode.textContent.trim()) {
+            fullText += `${currentNode.textContent.trim()}\n`;
+          }
+          currentNode = currentNode.nextElementSibling;
+        }
+        fullText += '\n';
+      });
+    });
+    
+    // If our structured extraction didn't yield much, fall back to getting all text
+    if (fullText.trim().length < 100) {
+      fullText = Array.from(jobPostingElements)
+        .map(el => el.textContent.trim())
+        .join('\n\n');
+    }
+    
+    return fullText;
+  }
+  
+  // Try Workday's newer UI pattern with specific data attributes
+  const jobDetails = document.querySelector('[data-automation-id="job-detail-content"]');
+  if (jobDetails) {
+    // Try to get specific sections from the job details
+    const sections = jobDetails.querySelectorAll('[data-automation-id="jobReqDescription"], [data-automation-id="jobReqQualifications"]');
+    
+    if (sections.length > 0) {
+      return Array.from(sections)
+        .map(section => {
+          const sectionTitle = section.querySelector('[data-automation-id="section-Title"]');
+          const sectionContent = section.querySelector('[data-automation-id="section-content"]');
+          
+          let text = '';
+          if (sectionTitle) {
+            text += `${sectionTitle.textContent.trim()}\n\n`;
+          }
+          
+          if (sectionContent) {
+            // Extract bullet points
+            const bullets = sectionContent.querySelectorAll('li');
+            if (bullets.length > 0) {
+              bullets.forEach(bullet => {
+                text += `• ${bullet.textContent.trim()}\n`;
+              });
+            } else {
+              text += sectionContent.textContent.trim();
+            }
+          }
+          
+          return text;
+        })
+        .join('\n\n');
+    }
+    
+    // If we couldn't find specific sections, get the entire content
+    return jobDetails.textContent.trim();
   }
   
   // Fallback to generic method if specific elements aren't found
@@ -37,11 +161,169 @@ function extractWorkdayJobDescription() {
 }
 
 function extractGreenhouseJobDescription() {
+  console.log('Extracting Greenhouse job description with improved handling');
+  
+  // Greenhouse usually has structured job sections
+  const jobSections = document.querySelectorAll('.section-wrapper, .section, .description');
+  if (jobSections.length > 0) {
+    let fullText = '';
+    
+    // Get the job title first
+    const jobTitle = document.querySelector('h1.app-title, h1.heading, .app-title');
+    if (jobTitle) {
+      fullText += `${jobTitle.textContent.trim()}\n\n`;
+    }
+    
+    // Process each section
+    jobSections.forEach(section => {
+      // Get section title if available
+      const sectionTitle = section.querySelector('h2, h3, h4, .section-header');
+      if (sectionTitle) {
+        fullText += `${sectionTitle.textContent.trim()}\n`;
+      }
+      
+      // Get bullet points
+      const bulletLists = section.querySelectorAll('ul, ol');
+      if (bulletLists.length > 0) {
+        bulletLists.forEach(list => {
+          const listItems = list.querySelectorAll('li');
+          listItems.forEach(item => {
+            fullText += `• ${item.textContent.trim()}\n`;
+          });
+          fullText += '\n';
+        });
+      } else {
+        // Get paragraphs if no bullet points
+        const paragraphs = section.querySelectorAll('p');
+        if (paragraphs.length > 0) {
+          paragraphs.forEach(p => {
+            if (p.textContent.trim() && !sectionTitle || !sectionTitle.contains(p)) {
+              fullText += `${p.textContent.trim()}\n\n`;
+            }
+          });
+        } else if (section.textContent.trim() && (!sectionTitle || section.textContent.trim() !== sectionTitle.textContent.trim())) {
+          // Use entire section text if no paragraphs found
+          fullText += `${section.textContent.trim()}\n\n`;
+        }
+      }
+    });
+    
+    return fullText.trim();
+  }
+  
   // Greenhouse usually has a "content" section
   const contentElement = document.querySelector('#content, .content, .job-description');
   
   if (contentElement) {
-    return contentElement.textContent;
+    let fullText = '';
+    
+    // First, try to get the job title
+    const jobTitle = document.querySelector('h1.app-title');
+    if (jobTitle) {
+      fullText += `${jobTitle.textContent.trim()}\n\n`;
+    }
+    
+    // Get all headings to structure the content
+    const headings = contentElement.querySelectorAll('h1, h2, h3');
+    if (headings.length > 0) {
+      headings.forEach(heading => {
+        fullText += `${heading.textContent.trim()}\n`;
+        
+        // Get content until next heading
+        let currentNode = heading.nextElementSibling;
+        while (currentNode && !currentNode.matches('h1, h2, h3')) {
+          if (currentNode.tagName === 'UL' || currentNode.tagName === 'OL') {
+            // Process bullet points
+            const bullets = currentNode.querySelectorAll('li');
+            if (bullets.length > 0) {
+              bullets.forEach(bullet => {
+                fullText += `• ${bullet.textContent.trim()}\n`;
+              });
+              fullText += '\n';
+            }
+          } else if (currentNode.textContent.trim()) {
+            fullText += `${currentNode.textContent.trim()}\n\n`;
+          }
+          currentNode = currentNode.nextElementSibling;
+        }
+      });
+    } else {
+      // If no headings, extract bullet points specifically
+      const bulletLists = contentElement.querySelectorAll('ul, ol');
+      if (bulletLists.length > 0) {
+        bulletLists.forEach(list => {
+          const listItems = list.querySelectorAll('li');
+          listItems.forEach(item => {
+            fullText += `• ${item.textContent.trim()}\n`;
+          });
+          fullText += '\n';
+        });
+      }
+      
+      // Extract paragraphs
+      const paragraphs = contentElement.querySelectorAll('p');
+      if (paragraphs.length > 0) {
+        paragraphs.forEach(p => {
+          if (p.textContent.trim()) {
+            fullText += `${p.textContent.trim()}\n\n`;
+          }
+        });
+      }
+      
+      // If we didn't get much structured content, use the plain text
+      if (fullText.trim().length < 100) {
+        fullText = contentElement.textContent.trim();
+      }
+    }
+    
+    return fullText;
+  }
+  
+  // Try Greenhouse's alternative layout
+  const jobInfoSection = document.querySelector('.job-info');
+  if (jobInfoSection) {
+    let fullText = '';
+    
+    // Get job title
+    const jobTitle = document.querySelector('.app-title');
+    if (jobTitle) {
+      fullText += `${jobTitle.textContent.trim()}\n\n`;
+    }
+    
+    // Get main job info
+    fullText += jobInfoSection.textContent.trim() + '\n\n';
+    
+    // Get structured content
+    const contentSections = document.querySelectorAll('.section-wrapper');
+    if (contentSections.length > 0) {
+      contentSections.forEach(section => {
+        const sectionTitle = section.querySelector('h3, h2');
+        if (sectionTitle) {
+          fullText += `${sectionTitle.textContent.trim()}\n`;
+        }
+        
+        // Extract bullet points
+        const bullets = section.querySelectorAll('li');
+        if (bullets.length > 0) {
+          bullets.forEach(bullet => {
+            fullText += `• ${bullet.textContent.trim()}\n`;
+          });
+          fullText += '\n';
+        } else {
+          // Get paragraphs if no bullets
+          const paragraphs = section.querySelectorAll('p');
+          if (paragraphs.length > 0) {
+            paragraphs.forEach(p => {
+              if (p.textContent.trim().length > 0) {
+                fullText += `${p.textContent.trim()}\n\n`;
+              }
+            });
+          }
+        }
+      });
+    }
+    
+    return fullText;
   }
   
   return extractGenericJobDescription();
@@ -213,22 +495,35 @@ function extractGenericJobDescription() {
 function cleanupJobDescription(text) {
   if (!text) return '';
   
-  // Remove extra whitespace, normalize line breaks
-  let cleaned = text.replace(/\s+/g, ' ');
+  // Normalize line breaks first
+  let cleaned = text.replace(/\r\n/g, '\n');
+  
+  // Remove extra blank lines (more than 2 consecutive newlines)
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  
+  // Normalize spaces within lines without affecting line breaks
+  cleaned = cleaned.split('\n').map(line => {
+    return line.replace(/\s+/g, ' ').trim();
+  }).join('\n');
   
   // Remove common job board boilerplate text
   const boilerplatePatterns = [
-    /About the company/i,
+    /About the company\s*:/i,
     /Equal Opportunity Employer/i,
     /Apply now/i,
     /Click to apply/i,
-    /Submit your resume/i
+    /Submit your resume/i,
+    /Click here to apply/i
   ];
   
   boilerplatePatterns.forEach(pattern => {
     cleaned = cleaned.replace(pattern, '');
   });
   
+  // Ensure bullet points are properly formatted with a space after
+  cleaned = cleaned.replace(/•(\S)/g, '• $1');
+  
+  // Remove any trailing/leading whitespace
   return cleaned.trim();
 }
 
@@ -706,32 +1001,50 @@ function showToast(message) {
   }, 5000);
 }
 
-// Listen for messages from the popup or background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Content script received message:', request.action);
+// Add message listener to handle content script interactions
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Content script received message:', message);
   
-  if (request.action === 'extractJobDescription') {
-    try {
-      const jobDescription = extractJobDescription();
-      console.log('Extracted job description, length:', jobDescription.length);
-      sendResponse({ jobDescription });
-    } catch (error) {
-      console.error('Error extracting job description:', error);
-      sendResponse({ error: error.message });
+  try {
+    switch (message.action) {
+      case 'extractJobDescription':
+        // Use the general extraction function
+        const jobDescription = extractJobDescription();
+        sendResponse({ jobDescription });
+        break;
+        
+      case 'extractWorkdayJobDescription':
+        // Use Workday-specific extraction
+        const workdayJobDescription = extractWorkdayJobDescription();
+        sendResponse({ jobDescription: workdayJobDescription });
+        break;
+        
+      case 'extractGreenhouseJobDescription':
+        // Use Greenhouse-specific extraction
+        const greenhouseJobDescription = extractGreenhouseJobDescription();
+        sendResponse({ jobDescription: greenhouseJobDescription });
+        break;
+        
+      case 'autofillApplication':
+        // Handle autofill request
+        if (message.data) {
+          const result = autofillApplication(message.data);
+          sendResponse(result);
+        } else {
+          sendResponse({ error: 'No content provided for autofill' });
+        }
+        break;
+        
+      default:
+        sendResponse({ error: 'Unknown action' });
     }
-    return true; // Required for async response
+  } catch (error) {
+    console.error('Error processing message:', error);
+    sendResponse({ error: error.message });
   }
   
-  if (request.action === 'autofillApplication') {
-    try {
-      const result = autofillApplication(request.data);
-      sendResponse(result);
-    } catch (error) {
-      console.error('Error autofilling application:', error);
-      sendResponse({ error: error.message, success: false });
-    }
-    return true; // Required for async response
-  }
+  // Return true to indicate that we will send a response asynchronously
+  return true;
 });
 
 // Log to confirm content script has loaded

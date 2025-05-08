@@ -108,14 +108,21 @@ function initResumeUpload() {
         // Use PDF.js to extract text from PDF
         extractPDFText(e.target.result).then(extractedText => {
           content = extractedText || 'No text content could be extracted from this PDF.';
-          resumeContent.textContent = content;
+          
+          // Validate that we actually got useful content
+          if (!content || content.trim().length < 50) {
+            resumeContent.textContent = 'Warning: Limited text was extracted from this PDF. The content may not be sufficient for AI processing.';
+            updateStatus('Limited text extracted from PDF. Try another file format.', 'warning');
+          } else {
+            resumeContent.textContent = content;
+            updateStatus('Resume saved');
+          }
           
           // Save to storage
           saveResume(file, content);
-          updateStatus('Resume saved');
         }).catch(error => {
           console.error('Error extracting PDF text:', error);
-          content = 'Error extracting PDF content. Please try another file.';
+          content = 'Error extracting PDF content. Please try another file or convert to text format.';
           resumeContent.textContent = content;
           updateStatus('Error processing PDF', 'error');
           
@@ -125,11 +132,18 @@ function initResumeUpload() {
       } else {
         // For text files, display the content
         content = e.target.result;
-        resumeContent.textContent = content;
+        
+        // Validate content length
+        if (!content || content.trim().length < 50) {
+          resumeContent.textContent = 'Warning: This text file contains very little content. It may not be sufficient for AI processing.';
+          updateStatus('Limited text in file. Check file content.', 'warning');
+        } else {
+          resumeContent.textContent = content;
+          updateStatus('Resume saved');
+        }
         
         // Save to storage
         saveResume(file, content);
-        updateStatus('Resume saved');
       }
     };
     
@@ -174,7 +188,15 @@ function initResumeUpload() {
         extractedText += pageText + '\n\n';
       }
       
-      return extractedText.trim();
+      const text = extractedText.trim();
+      
+      // Check if we got meaningful text content
+      if (text.length < 50) {
+        console.warn('Extracted text is very short, may indicate a scanned PDF without OCR');
+        updateStatus('Warning: Limited text extracted, PDF may be scanned without OCR', 'warning');
+      }
+      
+      return text;
     } catch (error) {
       console.error('PDF.js extraction error:', error);
       throw error;
@@ -189,8 +211,11 @@ function initResumeUpload() {
       lastUpdated: new Date().toISOString()
     };
     
+    // Add content length for debugging
+    console.log(`Saving resume with content length: ${content.length} characters`);
+    
     chrome.storage.local.set({ resume: resumeData }, () => {
-      updateStatus('Resume saved');
+      // Status is already set in the calling function
     });
   }
 }
@@ -219,10 +244,24 @@ function initJobDescription() {
         files: ['content/jobfill-functions.js']
       })
       .then(() => {
+        // Check if we're on a Workday or Greenhouse site
+        const url = activeTab.url.toLowerCase();
+        let action = 'extractJobDescription';
+        
+        if (url.includes('workday.com')) {
+          action = 'extractWorkdayJobDescription';
+          updateStatus('Extracting Workday job description...', 'progress');
+        } else if (url.includes('greenhouse.io')) {
+          action = 'extractGreenhouseJobDescription';
+          updateStatus('Extracting Greenhouse job description...', 'progress');
+        } else {
+          updateStatus('Extracting general job description...', 'progress');
+        }
+        
         // Now send message to extract job description
         chrome.tabs.sendMessage(
           activeTab.id, 
-          { action: 'extractJobDescription' }, 
+          { action: action }, 
           (response) => {
             if (chrome.runtime.lastError) {
               updateStatus('Error: ' + chrome.runtime.lastError.message, 'error');
@@ -306,6 +345,12 @@ function initGenerateContent() {
     
     if (!data.resume) {
       updateStatus('Please upload your resume first', 'error');
+      return;
+    }
+    
+    // Validate resume content exists and is not empty
+    if (!data.resume.content || data.resume.content.trim().length < 50) {
+      updateStatus('Resume content is too short or could not be extracted. Please upload a different file.', 'error');
       return;
     }
     
@@ -393,7 +438,8 @@ function initGenerateContent() {
       console.log('Sending generate content request:', {
         apiType: apiType,
         model: settings.aiModel,
-        options: options
+        options: options,
+        resumeContentLength: data.resume.content ? data.resume.content.length : 0
       });
       
       // Call background script to handle API request
@@ -438,7 +484,12 @@ function initGenerateContent() {
       }
       
       if (options.experience) {
-        experiencePreview.textContent = results.experience || 'No experience bullets generated';
+        // Format experience as bullet points
+        if (results.experience) {
+          formatContentAsBulletPoints(experiencePreview, results.experience);
+        } else {
+          experiencePreview.textContent = 'No experience bullets generated';
+        }
       }
       
       if (options.education) {
@@ -450,7 +501,12 @@ function initGenerateContent() {
       }
       
       if (options.awards) {
-        awardsPreview.textContent = results.awards || 'No awards/achievements generated';
+        // Format awards as bullet points
+        if (results.awards) {
+          formatContentAsBulletPoints(awardsPreview, results.awards);
+        } else {
+          awardsPreview.textContent = 'No awards/achievements generated';
+        }
       }
       
       if (options.projects) {
@@ -468,8 +524,12 @@ function initGenerateContent() {
       generatedContent.hidden = false;
       updateStatus('Content generated successfully');
     } catch (error) {
-      // Handle specific Ollama errors with more helpful guidance
-      if (error.message.includes('Ollama API error: Forbidden') || 
+      // Handle different error types with more user-friendly messages
+      if (error.message.includes('resume content is not available') || 
+          error.message.includes('provide the resume text')) {
+        updateStatus('Error: Could not process your resume. Please try uploading a different file format or check if the resume content is extractable.', 'error');
+        console.error('Resume content error:', error.message);
+      } else if (error.message.includes('Ollama API error: Forbidden') || 
           error.message.includes('CORS') || 
           error.message.includes('OLLAMA_ORIGINS')) {
         
@@ -483,7 +543,6 @@ function initGenerateContent() {
         console.info('On Windows, you can use:');
         console.info('   set OLLAMA_ORIGINS=*');
         console.info('   ollama serve');
-        
       } else {
         // Handle other errors
         updateStatus('Error: ' + error.message, 'error');
@@ -788,7 +847,7 @@ function loadUserData() {
       }
       
       if (data.generatedContent.experience) {
-        experiencePreview.textContent = data.generatedContent.experience;
+        formatContentAsBulletPoints(experiencePreview, data.generatedContent.experience);
       }
       
       if (data.generatedContent.education) {
@@ -800,7 +859,7 @@ function loadUserData() {
       }
       
       if (data.generatedContent.awards) {
-        awardsPreview.textContent = data.generatedContent.awards;
+        formatContentAsBulletPoints(awardsPreview, data.generatedContent.awards);
       }
       
       if (data.generatedContent.projects) {
@@ -845,4 +904,31 @@ function debounce(func, delay) {
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(context, args), delay);
   };
+}
+
+// Helper function to format content as bullet points
+function formatContentAsBulletPoints(element, content) {
+  // Clear any existing content
+  element.innerHTML = '';
+  
+  // Split the content by newlines to get individual points
+  const lines = content.split('\n').filter(line => line.trim() !== '');
+  
+  // Create a bullet point list
+  const ul = document.createElement('ul');
+  ul.style.paddingLeft = '20px';
+  ul.style.margin = '0';
+  
+  lines.forEach(line => {
+    // Trim any existing bullet points or dashes at the beginning
+    let cleanLine = line.trim().replace(/^[-•*]\s*/, '');
+    
+    // Create a list item
+    const li = document.createElement('li');
+    li.textContent = cleanLine;
+    ul.appendChild(li);
+  });
+  
+  // Add the list to the container
+  element.appendChild(ul);
 } 

@@ -125,6 +125,27 @@ async function generateContent(data) {
       hasOllamaUrl: !!settings.ollamaUrl
     });
     
+    // Validate resume and job description data
+    if (!resume) {
+      throw new Error('Resume data is missing. Please upload your resume.');
+    }
+
+    if (!resume.content || typeof resume.content !== 'string') {
+      throw new Error('The resume content is not available. Please upload your resume again.');
+    }
+
+    // Check if resume content is too short or empty
+    if (resume.content.trim().length < 100) {
+      throw new Error('The resume content is too short or could not be properly extracted. Please try uploading a different format or file.');
+    }
+    
+    if (!jobDescription || !jobDescription.content) {
+      throw new Error('Job description is missing. Please add a job description.');
+    }
+    
+    console.log(`Resume content length: ${resume.content.length} characters`);
+    console.log(`Job description length: ${jobDescription.content.length} characters`);
+    
     // CRITICAL FIX: Make a copy and ensure apiType is a string and normalized
     const apiTypeRaw = settings.apiType;
     // Default to 'openai' if apiType is missing or invalid
@@ -182,9 +203,14 @@ async function generateContent(data) {
     // Extract the actual resume content
     let resumeContent = resume.content;
     
+    // Catch issues with resume content before sending to AI
+    if (!resumeContent || resumeContent.includes('Error extracting PDF content')) {
+      throw new Error('There was a problem with the resume content. Please try uploading a different file or format.');
+    }
+    
     // Prepare prompt for AI
     const prompt = constructPrompt(resumeContent, jobDescription.content, outputs);
-    console.log('Constructed prompt (first 100 chars):', prompt.substring(0, 100) + '...');
+    console.log('Constructed prompt (first 100 chars):', prompt + '...');
     
     // Call the appropriate AI API
     let response;
@@ -202,11 +228,28 @@ async function generateContent(data) {
       throw new Error(`Unsupported API type: ${apiType}`);
     }
     
+    // Check if the response indicates an issue with resume content
+    if (response && (
+        response.toLowerCase().includes('cannot parse the resume') ||
+        response.toLowerCase().includes('resume content is missing') ||
+        response.toLowerCase().includes('unable to extract information') ||
+        response.toLowerCase().includes('please provide the resume')
+      )) {
+      throw new Error('The AI could not properly analyze your resume. Please try uploading a clearer or better-formatted resume.');
+    }
+    
     console.log('Got response from AI API (first 100 chars):', (response || '').substring(0, 100) + '...');
     
     // Parse the response into the expected format
     const parsedResponse = parseAIResponse(response, outputs);
     console.log('Parsed response:', parsedResponse);
+    
+    // Make sure we got at least some content back
+    const hasAnyContent = Object.values(parsedResponse).some(val => val && val.trim().length > 0);
+    if (!hasAnyContent) {
+      throw new Error('The AI generated empty responses. Please try a different model or check your resume format.');
+    }
+    
     return parsedResponse;
   } catch (error) {
     console.error('Error in generateContent:', error);
@@ -219,8 +262,8 @@ async function generateContent(data) {
  */
 function constructPrompt(resumeContent, jobDescription, outputs) {
   // Get a shorter version of the resume and job description to stay within token limits
-  const resume = resumeContent.substring(0, 3000);
-  const job = jobDescription.substring(0, 3000);
+  const resume = resumeContent
+  const job = jobDescription
   
   let prompt = `
 You are an expert at matching candidate profiles to job descriptions and generating optimized job application content.
@@ -373,17 +416,12 @@ async function callOllama(ollamaUrl, prompt, model = 'llama2') {
     const endpoint = `${ollamaUrl}/api/generate`;
     console.log(`Calling Ollama API at ${endpoint} with model ${model}`);
     
-    // Create a system prompt that emphasizes the response format
-    const systemPrompt = `You are an expert at matching candidate profiles to job descriptions and creating optimized job application content. 
-Format your response with clear section headings as requested.
-Structure your response with the exact section names provided in the prompt.
-Example: "PROFESSIONAL_SUMMARY: (content here)"`;
     
     // Create the request payload
     const payload = {
       model: model,
       prompt: prompt,
-      system: systemPrompt,
+      system: "You are an expert at matching candidate profiles to job descriptions and creating optimized job application content. Respond in clean JSON with keys matching section names. If any data is missing, infer based on experience level and resume context.",
       stream: false,
       // Adjust parameters based on model capabilities
       temperature: 0.7,
@@ -485,7 +523,7 @@ async function checkOllamaModelExists(ollamaUrl, modelName) {
  */
 function getMaxTokensForModel(model) {
   // Default to 2000 for most models
-  const defaultTokens = 2000;
+  const defaultTokens = 5000;
   
   // Model-specific token limits
   const tokenLimits = {
@@ -508,77 +546,253 @@ function getMaxTokensForModel(model) {
 }
 
 /**
- * Parse the AI response into the expected format
+ * Parse the AI's response text into structured sections
  */
 function parseAIResponse(responseText, requestedOutputs) {
-  try {
-    console.log('Raw AI response:', responseText);
-    let parsedResponse;
-    
-    try {
-      // Extract JSON from the response text (in case the AI included additional text)
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsedResponse = JSON.parse(jsonMatch[0]);
-        console.log('Successfully parsed JSON response:', parsedResponse);
-      } else {
-        console.log('No JSON found in response, using text extraction method');
-        throw new Error('No JSON found in response');
-      }
-    } catch (jsonError) {
-      console.error('Error parsing JSON response:', jsonError);
-      
-      // Fallback: try to extract sections based on headers
-      parsedResponse = extractSectionsFromText(responseText);
-      console.log('Extracted sections from text:', parsedResponse);
-    }
-    
-    // Create the result object with only the requested outputs
-    const result = {};
-    
-    if (requestedOutputs.includes('professional_summary') && parsedResponse.professional_summary) {
-      result.summary = parsedResponse.professional_summary;
-    }
-    
-    if (requestedOutputs.includes('experience_bullets') && parsedResponse.experience_bullets) {
-      result.experience = parsedResponse.experience_bullets;
-    }
-    
-    if (requestedOutputs.includes('education') && parsedResponse.education) {
-      result.education = parsedResponse.education;
-    }
-    
-    if (requestedOutputs.includes('skills') && parsedResponse.skills) {
-      result.skills = parsedResponse.skills;
-    }
-    
-    if (requestedOutputs.includes('awards') && parsedResponse.awards) {
-      result.awards = parsedResponse.awards;
-    }
-    
-    if (requestedOutputs.includes('projects') && parsedResponse.projects) {
-      result.projects = parsedResponse.projects;
-    }
-    
-    if (requestedOutputs.includes('cover_letter') && parsedResponse.cover_letter) {
-      result.coverLetter = parsedResponse.cover_letter;
-    }
-    
-    // Check if we got any content from the structured approach
-    const hasContent = Object.keys(result).length > 0;
-    
-    // If no content was extracted using structured approach, use a more lenient approach
-    if (!hasContent) {
-      console.log('No content found in structured response, using fallback extraction method');
-      return extractContentUsingFallbackMethod(responseText, requestedOutputs);
-    }
-    
-    return result;
-  } catch (error) {
-    console.error('Error parsing AI response:', error);
-    // Even if parsing fails, try to extract something
-    return extractContentUsingFallbackMethod(responseText, requestedOutputs);
+  if (!responseText) {
+    console.error('Empty response from AI');
+    return {
+      error: 'No response was generated by the AI. Please try again.'
+    };
   }
+  
+  console.log('Parsing AI response with length:', responseText.length);
+  
+  // Check for error messages in the response
+  if (responseText.toLowerCase().includes('error') && 
+      (responseText.toLowerCase().includes('resume') || responseText.toLowerCase().includes('parse'))) {
+    console.error('AI indicated an error with resume content');
+    return {
+      error: 'The AI could not properly process your resume. Please try uploading a different file or format.'
+    };
+  }
+  
+  // First, try to parse the response as JSON
+  try {
+    // Look for JSON-like structure in the response - try to extract JSON between curly braces
+    const jsonMatch = responseText.match(/{[\s\S]*}/);
+    if (jsonMatch) {
+      const jsonText = jsonMatch[0];
+      let jsonData;
+      
+      try {
+        // First attempt - direct parsing
+        jsonData = JSON.parse(jsonText);
+      } catch (initialError) {
+        console.log('Initial JSON parse failed, trying to fix malformed JSON:', initialError.message);
+        
+        try {
+          // Second attempt - try to fix common JSON issues
+          // Replace escaped quotes within the JSON
+          const fixedJson = jsonText.replace(/\\"/g, '"');
+          jsonData = JSON.parse(fixedJson);
+        } catch (fixError) {
+          console.log('Fixed JSON parse failed:', fixError.message);
+          
+          // Third attempt - handle case where JSON values are strings that contain stringified JSON
+          try {
+            const partialJsonData = {};
+            // Extract key-value pairs using regex
+            const keyValuePairs = jsonText.match(/"([^"]+)":\s*("[^"]*"|{[^}]*}|\[[^\]]*\]|[^,}]+)/g);
+            
+            if (keyValuePairs) {
+              keyValuePairs.forEach(pair => {
+                // Extract key and value
+                const keyMatch = pair.match(/"([^"]+)":/);
+                if (keyMatch && keyMatch[1]) {
+                  const key = keyMatch[1];
+                  // Extract the value portion (everything after the first colon)
+                  const valueStr = pair.substring(pair.indexOf(':') + 1).trim();
+                  
+                  // Try to parse the value if it looks like JSON
+                  if ((valueStr.startsWith('"') && valueStr.endsWith('"')) || 
+                      valueStr.startsWith('{') || valueStr.startsWith('[')) {
+                    try {
+                      let parsedValue;
+                      // If it's a string that might contain JSON
+                      if (valueStr.startsWith('"')) {
+                        // Remove surrounding quotes and try to parse
+                        const innerStr = valueStr.substring(1, valueStr.length - 1);
+                        // Check if it looks like stringified JSON
+                        if (innerStr.includes('{') && innerStr.includes('}')) {
+                          try {
+                            // Replace escaped quotes and backslashes
+                            const unescapedStr = innerStr
+                              .replace(/\\"/g, '"')
+                              .replace(/\\\\/g, '\\');
+                            parsedValue = unescapedStr;
+                          } catch (e) {
+                            // If that fails, just use the string as is
+                            parsedValue = innerStr;
+                          }
+                        } else {
+                          // Not stringified JSON, use as is
+                          parsedValue = innerStr;
+                        }
+                      } else {
+                        // Try to parse as JSON
+                        parsedValue = JSON.parse(valueStr);
+                      }
+                      partialJsonData[key] = parsedValue;
+                    } catch (parseValueError) {
+                      // If parsing fails, use the raw string
+                      partialJsonData[key] = valueStr.replace(/^"(.*)"$/, '$1'); // Remove quotes if present
+                    }
+                  } else {
+                    // For non-JSON values, just clean and add
+                    partialJsonData[key] = valueStr.replace(/,$/, ''); // Remove trailing comma if present
+                  }
+                }
+              });
+              
+              jsonData = partialJsonData;
+            } else {
+              throw new Error('No key-value pairs found in JSON');
+            }
+          } catch (fallbackError) {
+            console.log('Fallback JSON parsing failed:', fallbackError.message);
+            throw fixError; // Re-throw previous error
+          }
+        }
+      }
+      
+      console.log('Successfully parsed JSON response:', Object.keys(jsonData));
+      
+      // Prepare the result from JSON data
+      const result = {};
+      
+      // Map JSON fields to expected output format
+      if (requestedOutputs.includes('professional_summary') && jsonData.professional_summary) {
+        result.summary = jsonData.professional_summary;
+      }
+      
+      if (requestedOutputs.includes('experience_bullets') && jsonData.experience_bullets) {
+        result.experience = jsonData.experience_bullets;
+      }
+      
+      if (requestedOutputs.includes('education') && jsonData.education) {
+        result.education = jsonData.education;
+      }
+      
+      if (requestedOutputs.includes('skills') && jsonData.skills) {
+        result.skills = jsonData.skills;
+      }
+      
+      if (requestedOutputs.includes('awards') && jsonData.awards) {
+        result.awards = jsonData.awards;
+      }
+      
+      if (requestedOutputs.includes('projects') && jsonData.projects) {
+        result.projects = jsonData.projects;
+      }
+      
+      if (requestedOutputs.includes('cover_letter') && jsonData.cover_letter) {
+        result.coverLetter = jsonData.cover_letter;
+      }
+      
+      // Check if we have any content
+      const hasContent = Object.values(result).some(val => val && val.trim().length > 0);
+      if (hasContent) {
+        return result;
+      }
+      
+      // If we reach here, JSON parsing succeeded but didn't provide the required fields
+      console.log('JSON parsing succeeded but did not provide all required fields');
+    }
+  } catch (error) {
+    console.log('Failed to parse response as JSON, falling back to regex extraction:', error.message);
+  }
+  
+  // If JSON parsing failed or didn't provide required fields, fall back to regex extraction
+  // First, try to parse using markdown section headers
+  let sections = extractSectionsFromText(responseText);
+  console.log('Extracted sections using primary method:', Object.keys(sections));
+  
+  // If we don't have any sections or missing requested outputs, try fallback method
+  const hasAllRequestedOutputs = requestedOutputs.every(output => {
+    // Convert output names to match the expected response format
+    const sectionKey = output.replace(/_/g, '').toLowerCase();
+    return sections[sectionKey] && sections[sectionKey].trim().length > 0;
+  });
+  
+  if (Object.keys(sections).length === 0 || !hasAllRequestedOutputs) {
+    console.log('Using fallback method to parse AI response');
+    const fallbackSections = extractContentUsingFallbackMethod(responseText, requestedOutputs);
+    
+    // Merge any missing sections from fallback method
+    sections = { ...sections, ...fallbackSections };
+    console.log('Sections after fallback method:', Object.keys(sections));
+  }
+  
+  // If we still don't have all sections, try to divide the text by keywords
+  const stillMissingOutputs = requestedOutputs.some(output => {
+    const sectionKey = output.replace(/_/g, '').toLowerCase();
+    return !sections[sectionKey] || sections[sectionKey].trim().length === 0;
+  });
+  
+  if (stillMissingOutputs) {
+    console.log('Using section division method to parse AI response');
+    const dividedSections = divideLongTextIntoSections(responseText, requestedOutputs);
+    
+    // Merge any missing sections from division method
+    sections = { ...sections, ...dividedSections };
+    console.log('Sections after division method:', Object.keys(sections));
+  }
+  
+  // Prepare the final response object with the requested outputs
+  const result = {};
+  
+  // Map the outputs from section names to the expected response format
+  if (requestedOutputs.includes('professional_summary')) {
+    result.summary = sections.professionalsummary || sections.summary || '';
+  }
+  
+  if (requestedOutputs.includes('experience_bullets')) {
+    result.experience = sections.experiencebullets || sections.experience || '';
+  }
+  
+  if (requestedOutputs.includes('education')) {
+    result.education = sections.education || '';
+  }
+  
+  if (requestedOutputs.includes('skills')) {
+    result.skills = sections.skills || '';
+  }
+  
+  if (requestedOutputs.includes('awards')) {
+    result.awards = sections.awards || sections.achievements || '';
+  }
+  
+  if (requestedOutputs.includes('projects')) {
+    result.projects = sections.projects || '';
+  }
+  
+  if (requestedOutputs.includes('cover_letter')) {
+    result.coverLetter = sections.coverletter || sections.coverLetter || '';
+  }
+  
+  // Check if any of the requested outputs are missing or empty
+  const missingOutputs = requestedOutputs.filter(output => {
+    const key = output === 'professional_summary' ? 'summary' :
+                 output === 'experience_bullets' ? 'experience' :
+                 output === 'cover_letter' ? 'coverLetter' : output;
+    return !result[key] || result[key].trim().length === 0;
+  });
+  
+  if (missingOutputs.length > 0) {
+    console.warn('Missing outputs after all parsing attempts:', missingOutputs);
+    
+    // Add placeholders for missing sections with helpful error messages
+    missingOutputs.forEach(output => {
+      const key = output === 'professional_summary' ? 'summary' :
+                   output === 'experience_bullets' ? 'experience' :
+                   output === 'cover_letter' ? 'coverLetter' : output;
+      
+      result[key] = `No ${output.replace(/_/g, ' ')} generated. The AI couldn't extract this information from your resume.`;
+    });
+  }
+  
+  return result;
 }
 
 /**
