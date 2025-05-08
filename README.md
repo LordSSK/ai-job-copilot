@@ -11,7 +11,7 @@ JobFill is a Chrome extension that helps job seekers automatically generate tail
   - Experience bullets aligned with job requirements
   - Relevant skills lists
   - Custom cover letters
-- **Autofill Applications**: Automatically fill in form fields on job application websites
+- **Autofill Applications (WIP)**: Automatically fill in form fields on job application websites
 - **Multiple Job Board Support**: Works with Workday, Greenhouse, Lever, and other job boards
 
 ## Setup and Installation
@@ -75,32 +75,132 @@ job-fill/
 │   ├── popup.html
 │   └── popup.js
 ├── content/               # Content scripts
-│   └── content.js
+│   └── jobfill-functions.js
 ├── background/            # Background scripts
 │   └── background.js
 ├── utils/                 # Utility modules
 │   ├── storage.js
-│   └── auth.js
+│   └── pdf-loader.js
 ├── styles/                # CSS files
 │   ├── popup.css
-│   └── content.css
+│   └── jobfill-styles.css
 └── README.md
 ```
 
-### Custom Development
+### Project Architecture
+
+The JobFill Chrome extension is built with a modern architecture optimized for Chrome Extensions Manifest V3. Here's a detailed breakdown of each component:
+
+#### Core Components
+
+1. **User Interface (Popup)** 
+   - **Location**: `popup/` directory
+   - **Key Files**: `popup.html`, `popup.js`
+   - **Functionality**: Provides the main user interface with tabs for:
+     - Resume upload and parsing
+     - Job description extraction and editing
+     - Content generation with customizable options
+     - Settings configuration
+   - **Technologies**: HTML, CSS, Vanilla JavaScript
+
+2. **Content Scripts**
+   - **Location**: `content/` directory
+   - **Key Files**: `jobfill-functions.js`, `jobfill-styles.css`
+   - **Functionality**: 
+     - Interacts directly with job board websites
+     - Extracts job descriptions with specialized handlers for:
+       - Workday (`extractWorkdayJobDescription()`)
+       - Greenhouse (`extractGreenhouseJobDescription()`)
+       - Lever (`extractLeverJobDescription()`)
+       - Generic job boards (`extractGenericJobDescription()`)
+     - Implements autofill functionality for application forms
+     - Handles DOM manipulation and form field identification
+
+3. **Background Service**
+   - **Location**: `background/` directory
+   - **Key File**: `background.js`
+   - **Functionality**:
+     - Orchestrates communication between popup and content scripts
+     - Processes job data and resume content
+     - Manages AI API calls (OpenAI or Ollama)
+     - Constructs prompts and parses AI responses
+     - Handles error management and API validation
+
+4. **Utilities**
+   - **Location**: `utils/` directory
+   - **Key Files**:
+     - `storage.js`: Chrome storage operations
+     - `pdf-loader.js`: PDF parsing functionality
+   - **Functionality**: Provides reusable utility functions for core extension features
+
+5. **External Libraries**
+   - **Location**: `lib/` directory
+   - **Key Files**: `pdf.min.js`, `pdf.worker.min.js`
+   - **Functionality**: Third-party libraries for PDF processing
+
+#### Data Flow
+
+The extension follows a clear data flow pattern:
+
+1. **User Input Collection**:
+   - Resume upload in popup UI → Parsed by PDF library → Stored in Chrome storage
+   - Job description extraction via content scripts → Displayed in popup UI → Editable by user
+
+2. **Content Generation**:
+   - User requests content generation in popup
+   - Popup sends message to background script
+   - Background script:
+     - Constructs AI prompt with resume and job data
+     - Makes API call to selected AI provider (OpenAI/Ollama)
+     - Parses structured response
+     - Returns formatted content to popup
+
+3. **Application Autofill**:
+   - User triggers autofill in popup
+   - Popup sends message with generated content to background
+   - Background script executes content script functions
+   - Content script:
+     - Identifies form fields using intelligent matching
+     - Populates fields with appropriate content
+     - Provides visual feedback to user
+
+#### AI Integration
+
+The extension supports two AI backends:
+
+1. **OpenAI API**:
+   - Default provider using models like GPT-3.5 Turbo
+   - Requires user-provided API key
+   - Handles structured prompting and response parsing
+
+2. **Ollama (Local LLM)**:
+   - Alternative for privacy-focused users
+   - Runs locally with models like Llama2
+   - Requires local Ollama server with CORS settings
+
+#### Security & Privacy Features
+
+- Resume data stored locally in Chrome storage
+- API keys securely managed
+- Minimal data transmission to third parties
+
+#### Future Architecture Extensions
+
+The codebase is structured to support:
+
+- Additional job board integrations
+- New AI providers
+- Enhanced form field detection algorithms
+- Custom prompt templates
+- Additional content types for different application formats
+
+This architecture provides a robust foundation for an AI-powered job application assistant while maintaining performance, security, and extensibility.
+
+## Custom Development
 
 - **Modify API Integration**: Edit `background/background.js` to change API prompts or switch providers
-- **Support Additional Job Boards**: Extend `content/content.js` with new job board-specific extractors
+- **Support Additional Job Boards**: Extend `content/jobfill-functions.js` with new job board-specific extractors
 - **Enhance UI**: Modify files in the `popup/` directory
-
-## Premium Features
-
-This extension includes a basic subscription system framework:
-
-- **Free Tier**: Basic functionality with GPT-3.5 Turbo
-- **Premium Tier**: Access to advanced models, unlimited applications, more customization
-
-To implement payment processing, integrate with Stripe or another payment provider in the background scripts.
 
 ## Privacy
 
