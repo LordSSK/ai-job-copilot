@@ -235,7 +235,7 @@ function initGenerateContent() {
   generateBtn.addEventListener('click', async () => {
     // Check if we have resume and job description
     const data = await new Promise(resolve => {
-      chrome.storage.local.get(['resume', 'jobDescription', 'apiKey'], resolve);
+      chrome.storage.local.get(['resume', 'jobDescription', 'settings'], resolve);
     });
     
     if (!data.resume) {
@@ -248,8 +248,19 @@ function initGenerateContent() {
       return;
     }
     
-    if (!data.apiKey) {
-      updateStatus('Please add your API key in settings', 'error');
+    if (!data.settings) {
+      updateStatus('Please configure AI settings first', 'error');
+      return;
+    }
+    
+    // Check API-specific requirements
+    if (data.settings.apiType === 'openai' && !data.settings.apiKey) {
+      updateStatus('Please add your OpenAI API key in settings', 'error');
+      return;
+    }
+    
+    if (data.settings.apiType === 'ollama' && !data.settings.ollamaUrl) {
+      updateStatus('Please add your Ollama server URL in settings', 'error');
       return;
     }
     
@@ -277,7 +288,8 @@ function initGenerateContent() {
           data: {
             resume: data.resume,
             jobDescription: data.jobDescription,
-            options: options
+            options: options,
+            settings: data.settings
           }
         }, resolve);
       });
@@ -374,16 +386,147 @@ function initGenerateContent() {
 function initSettings() {
   const apiKeyInput = document.getElementById('api-key-input');
   const aiModelSelect = document.getElementById('ai-model-select');
+  const apiTypeSelect = document.getElementById('api-type-select');
+  const ollamaUrlInput = document.getElementById('ollama-url-input');
   const saveSettingsBtn = document.getElementById('save-settings-btn');
   const upgradeBtn = document.getElementById('upgrade-btn');
   const loginBtn = document.getElementById('login-btn');
   
+  // Toggle settings based on API type
+  apiTypeSelect.addEventListener('change', () => {
+    const isOllama = apiTypeSelect.value === 'ollama';
+    document.getElementById('openai-settings').hidden = isOllama;
+    document.getElementById('ollama-settings').hidden = !isOllama;
+    
+    // Update model options
+    updateModelOptions(apiTypeSelect.value);
+  });
+  
+  // Update model options based on API type
+  function updateModelOptions(apiType) {
+    // Clear current options
+    aiModelSelect.innerHTML = '';
+    
+    // Add appropriate options
+    if (apiType === 'openai') {
+      const openAiModels = ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'];
+      openAiModels.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = model;
+        aiModelSelect.appendChild(option);
+      });
+    } else if (apiType === 'ollama') {
+      // Set loading state
+      const loadingOption = document.createElement('option');
+      loadingOption.value = '';
+      loadingOption.textContent = 'Loading models...';
+      aiModelSelect.appendChild(loadingOption);
+      
+      // Get URL (use default if empty)
+      const ollamaUrl = ollamaUrlInput.value.trim() || 'http://localhost:11434';
+      
+      // Fetch available models from Ollama server
+      fetchOllamaModels(ollamaUrl)
+        .then(models => {
+          // Clear loading option
+          aiModelSelect.innerHTML = '';
+          
+          if (models.length === 0) {
+            const noModelsOption = document.createElement('option');
+            noModelsOption.value = '';
+            noModelsOption.textContent = 'No models found';
+            aiModelSelect.appendChild(noModelsOption);
+          } else {
+            // Add all available models
+            models.forEach(model => {
+              const option = document.createElement('option');
+              option.value = model;
+              option.textContent = model;
+              aiModelSelect.appendChild(option);
+            });
+          }
+          
+          // Try to set previously selected model
+          chrome.storage.local.get('settings', (data) => {
+            if (data.settings && data.settings.aiModel) {
+              // Check if the model exists in the options
+              const modelExists = Array.from(aiModelSelect.options).some(
+                option => option.value === data.settings.aiModel
+              );
+              
+              if (modelExists) {
+                aiModelSelect.value = data.settings.aiModel;
+              }
+            }
+          });
+        })
+        .catch(error => {
+          console.error('Error fetching Ollama models:', error);
+          aiModelSelect.innerHTML = '';
+          
+          const errorOption = document.createElement('option');
+          errorOption.value = '';
+          errorOption.textContent = 'Error loading models';
+          aiModelSelect.appendChild(errorOption);
+          
+          // Add fallback models
+          const fallbackModels = ['llama2', 'llama3', 'mistral', 'mixtral', 'phi', 'gemma'];
+          fallbackModels.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model;
+            option.textContent = model + ' (fallback)';
+            aiModelSelect.appendChild(option);
+          });
+        });
+    }
+  }
+  
+  // Fetch available models from Ollama server
+  async function fetchOllamaModels(ollamaUrl) {
+    try {
+      const response = await fetch(`${ollamaUrl}/api/tags`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch models: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Extract model names from the response
+      if (data.models && Array.isArray(data.models)) {
+        return data.models.map(model => model.name);
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching Ollama models:', error);
+      throw error;
+    }
+  }
+  
+  // URL input changes should trigger model refresh
+  ollamaUrlInput.addEventListener('blur', () => {
+    if (apiTypeSelect.value === 'ollama') {
+      updateModelOptions('ollama');
+    }
+  });
+  
   // Save settings
   saveSettingsBtn.addEventListener('click', () => {
+    const apiType = apiTypeSelect.value;
+    
     const settings = {
-      apiKey: apiKeyInput.value.trim(),
+      apiType: apiType,
       aiModel: aiModelSelect.value
     };
+    
+    // Add API-specific settings
+    if (apiType === 'openai') {
+      settings.apiKey = apiKeyInput.value.trim();
+    } else if (apiType === 'ollama') {
+      settings.ollamaUrl = ollamaUrlInput.value.trim() || 'http://localhost:11434';
+    }
     
     chrome.storage.local.set({ settings }, () => {
       updateStatus('Settings saved');
@@ -393,8 +536,23 @@ function initSettings() {
   // Load settings
   chrome.storage.local.get('settings', (data) => {
     if (data.settings) {
+      // Set API type
+      const apiType = data.settings.apiType || 'openai';
+      apiTypeSelect.value = apiType;
+      
+      // Update visible settings sections
+      document.getElementById('openai-settings').hidden = apiType === 'ollama';
+      document.getElementById('ollama-settings').hidden = apiType === 'openai';
+      
+      // Set values
       apiKeyInput.value = data.settings.apiKey || '';
-      aiModelSelect.value = data.settings.aiModel || 'gpt-3.5-turbo';
+      ollamaUrlInput.value = data.settings.ollamaUrl || 'http://localhost:11434';
+      
+      // Update model options after setting URL value
+      updateModelOptions(apiType);
+    } else {
+      // Initialize with default options
+      updateModelOptions('openai');
     }
   });
   

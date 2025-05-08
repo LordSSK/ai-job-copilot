@@ -102,19 +102,18 @@ function executeInPage({ function: funcName, args = [] }) {
 }
 
 /**
- * Generate application content based on resume and job description using OpenAI API
+ * Generate application content based on resume and job description using AI
  */
 async function generateContent(data) {
   try {
-    // Get the stored API key from settings
-    const storage = await chrome.storage.local.get('settings');
-    const apiKey = storage.settings?.apiKey;
+    const { resume, jobDescription, options, settings } = data;
     
-    if (!apiKey) {
-      throw new Error('API key not found. Please add your OpenAI API key in settings.');
+    if (!settings) {
+      throw new Error('Settings not found. Please configure the AI provider in settings.');
     }
     
-    const { resume, jobDescription, options } = data;
+    const apiType = settings.apiType || 'openai';
+    const aiModel = settings.aiModel || (apiType === 'openai' ? 'gpt-3.5-turbo' : 'llama2');
     
     // Construct the desired outputs based on the selected options
     const outputs = [];
@@ -131,11 +130,22 @@ async function generateContent(data) {
       resumeContent = "PDF EXTRACTION NOT IMPLEMENTED IN THIS DEMO";
     }
     
-    // Prepare prompt for OpenAI
+    // Prepare prompt for AI
     const prompt = constructPrompt(resumeContent, jobDescription.content, outputs);
     
-    // Call OpenAI API
-    const response = await callOpenAI(apiKey, prompt);
+    // Call the appropriate AI API
+    let response;
+    if (apiType === 'openai') {
+      if (!settings.apiKey) {
+        throw new Error('API key not found. Please add your OpenAI API key in settings.');
+      }
+      response = await callOpenAI(settings.apiKey, prompt, aiModel);
+    } else if (apiType === 'ollama') {
+      const ollamaUrl = settings.ollamaUrl || 'http://localhost:11434';
+      response = await callOllama(ollamaUrl, prompt, aiModel);
+    } else {
+      throw new Error(`Unsupported API type: ${apiType}`);
+    }
     
     // Parse the response into the expected format
     return parseAIResponse(response, outputs);
@@ -204,7 +214,7 @@ Include ONLY the sections I asked for above. Ensure the response is valid JSON.
 /**
  * Call the OpenAI API
  */
-async function callOpenAI(apiKey, prompt) {
+async function callOpenAI(apiKey, prompt, model = 'gpt-3.5-turbo') {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -213,7 +223,7 @@ async function callOpenAI(apiKey, prompt) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: model,
         messages: [
           {
             role: 'system',
@@ -240,6 +250,110 @@ async function callOpenAI(apiKey, prompt) {
     console.error('Error calling OpenAI API:', error);
     throw error;
   }
+}
+
+/**
+ * Call the Ollama API
+ */
+async function callOllama(ollamaUrl, prompt, model = 'llama2') {
+  try {
+    // First check if the model exists
+    const modelExists = await checkOllamaModelExists(ollamaUrl, model);
+    
+    if (!modelExists) {
+      throw new Error(`Model '${model}' not found on the Ollama server. Please check available models and try again.`);
+    }
+    
+    const endpoint = `${ollamaUrl}/api/generate`;
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        prompt: `You are an expert at matching candidate profiles to job descriptions and creating optimized job application content.\n\n${prompt}`,
+        system: 'You are an expert at matching candidate profiles to job descriptions and creating optimized job application content.',
+        stream: false,
+        // Adjust parameters based on model capabilities
+        temperature: 0.7,
+        max_tokens: getMaxTokensForModel(model)
+      })
+    });
+    
+    if (!response.ok) {
+      let errorMessage = response.statusText;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        // Ignore parse errors on error response
+      }
+      throw new Error(`Ollama API error: ${errorMessage}`);
+    }
+    
+    const data = await response.json();
+    return data.response;
+  } catch (error) {
+    console.error('Error calling Ollama API:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if a model exists on the Ollama server
+ */
+async function checkOllamaModelExists(ollamaUrl, modelName) {
+  try {
+    const response = await fetch(`${ollamaUrl}/api/tags`);
+    
+    if (!response.ok) {
+      console.warn(`Could not verify model existence: ${response.statusText}`);
+      // If we can't check, we'll assume it exists and let the generate call fail if needed
+      return true;
+    }
+    
+    const data = await response.json();
+    
+    // Check if the model exists
+    if (data.models && Array.isArray(data.models)) {
+      return data.models.some(model => model.name === modelName);
+    }
+    
+    return false;
+  } catch (error) {
+    console.warn(`Error checking model existence: ${error.message}`);
+    // If check fails, assume model exists and let the generate call handle any issues
+    return true;
+  }
+}
+
+/**
+ * Get appropriate max_tokens for different models
+ */
+function getMaxTokensForModel(model) {
+  // Default to 2000 for most models
+  const defaultTokens = 2000;
+  
+  // Model-specific token limits
+  const tokenLimits = {
+    'llama2': 2048,
+    'llama3': 4096,
+    'mistral': 2048,
+    'mixtral': 4096,
+    'phi': 1024,
+    'gemma': 2048
+  };
+  
+  // Check if we have a specific limit for this model
+  for (const [modelPrefix, limit] of Object.entries(tokenLimits)) {
+    if (model.startsWith(modelPrefix)) {
+      return limit;
+    }
+  }
+  
+  return defaultTokens;
 }
 
 /**

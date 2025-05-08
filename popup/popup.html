@@ -114,18 +114,32 @@
           <h2>Settings</h2>
           
           <div class="setting-group">
-            <h3>AI Model</h3>
-            <select id="ai-model-select">
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Free)</option>
-              <option value="gpt-4" disabled>GPT-4 (Premium)</option>
-              <option value="claude-2" disabled>Claude 2 (Premium)</option>
+            <h3>API Provider</h3>
+            <select id="api-type-select">
+              <option value="openai">OpenAI</option>
+              <option value="ollama">Ollama (Local)</option>
             </select>
           </div>
           
-          <div class="setting-group">
-            <h3>API Key</h3>
+          <div class="setting-group" id="openai-settings">
+            <h3>OpenAI Settings</h3>
+            <label for="api-key-input">API Key</label>
             <input type="password" id="api-key-input" placeholder="Enter your OpenAI API key">
             <p class="setting-help">Your API key is stored locally and used only for generating content.</p>
+          </div>
+          
+          <div class="setting-group" id="ollama-settings" hidden>
+            <h3>Ollama Settings</h3>
+            <label for="ollama-url-input">Server URL</label>
+            <input type="text" id="ollama-url-input" placeholder="http://localhost:11434" value="http://localhost:11434">
+            <p class="setting-help">URL of your Ollama server (typically running locally).</p>
+          </div>
+          
+          <div class="setting-group">
+            <h3>AI Model</h3>
+            <select id="ai-model-select">
+              <!-- Options will be populated by JavaScript -->
+            </select>
           </div>
           
           <div class="setting-group">
