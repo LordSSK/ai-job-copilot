@@ -316,6 +316,44 @@ function autofillWorkday(content) {
     });
   }
   
+  // Find and fill awards/achievements fields
+  const awardsFields = Array.from(textareaFields).filter(el => {
+    const label = findLabelForElement(el);
+    return label && (
+      label.match(/awards|achievements|honors|recognitions/i) ||
+      el.placeholder && el.placeholder.match(/awards|achievements|honors|recognitions/i)
+    );
+  });
+  
+  if (awardsFields.length > 0 && content.awards) {
+    awardsFields.forEach(field => {
+      field.value = content.awards;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(field);
+      filledFields++;
+    });
+  }
+  
+  // Find and fill projects fields
+  const projectsFields = Array.from(textareaFields).filter(el => {
+    const label = findLabelForElement(el);
+    return label && (
+      label.match(/projects|portfolio|work samples/i) ||
+      el.placeholder && el.placeholder.match(/projects|portfolio|work samples/i)
+    );
+  });
+  
+  if (projectsFields.length > 0 && content.projects) {
+    projectsFields.forEach(field => {
+      field.value = content.projects;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(field);
+      filledFields++;
+    });
+  }
+  
   return { success: filledFields > 0, filled: filledFields };
 }
 
@@ -362,6 +400,18 @@ function autofillGreenhouse(content) {
       field.dispatchEvent(new Event('change', { bubbles: true }));
       highlightElement(field);
       filledFields++;
+    } else if (label.match(/awards|achievements|honors|recognitions/i) && content.awards) {
+      field.value = content.awards;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(field);
+      filledFields++;
+    } else if (label.match(/projects|portfolio|work samples/i) && content.projects) {
+      field.value = content.projects;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(field);
+      filledFields++;
     }
   });
   
@@ -371,8 +421,9 @@ function autofillGreenhouse(content) {
 function autofillLever(content) {
   let filledFields = 0;
   
-  // Find and fill cover letter field
-  const coverLetterField = document.querySelector('#cover_letter, [name="cover_letter"], textarea[name*="cover"], textarea[name*="letter"]');
+  // Find the cover letter field (usually with a specific pattern)
+  const coverLetterField = document.querySelector('#cover_letter, textarea[name*="cover_letter"], textarea[name*="coverLetter"], textarea[placeholder*="cover letter"]');
+  
   if (coverLetterField && content.coverLetter) {
     coverLetterField.value = content.coverLetter;
     coverLetterField.dispatchEvent(new Event('input', { bubbles: true }));
@@ -381,8 +432,9 @@ function autofillLever(content) {
     filledFields++;
   }
   
-  // Find additional text areas for other content
-  const textareas = document.querySelectorAll('textarea');
+  // Fill in additional fields by checking their labels
+  const textareas = document.querySelectorAll('textarea:not(#cover_letter)');
+  
   textareas.forEach(textarea => {
     if (textarea === coverLetterField) return; // Skip already filled fields
     
@@ -409,6 +461,18 @@ function autofillLever(content) {
       filledFields++;
     } else if (label.match(/summary|profile|about you/i) && content.summary) {
       textarea.value = content.summary;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(textarea);
+      filledFields++;
+    } else if (label.match(/awards|achievements|honors|recognitions/i) && content.awards) {
+      textarea.value = content.awards;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(textarea);
+      filledFields++;
+    } else if (label.match(/projects|portfolio|work samples/i) && content.projects) {
+      textarea.value = content.projects;
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       textarea.dispatchEvent(new Event('change', { bubbles: true }));
       highlightElement(textarea);
@@ -496,6 +560,34 @@ function autofillGeneric(content) {
       
       if (content.education) {
         field.value = content.education;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        highlightElement(field);
+        filledFields++;
+      }
+    }
+    // Check for awards/achievements fields
+    else if ((label && label.match(/awards|achievements|honors|recognitions/i)) || 
+             placeholderText.match(/awards|achievements|honors|recognitions/i) ||
+             fieldId.match(/awards|achievements|honors|recognitions/i) ||
+             fieldName.match(/awards|achievements|honors|recognitions/i)) {
+      
+      if (content.awards) {
+        field.value = content.awards;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        highlightElement(field);
+        filledFields++;
+      }
+    }
+    // Check for projects fields
+    else if ((label && label.match(/projects|portfolio|work samples/i)) || 
+             placeholderText.match(/projects|portfolio|work samples/i) ||
+             fieldId.match(/projects|portfolio|work samples/i) ||
+             fieldName.match(/projects|portfolio|work samples/i)) {
+      
+      if (content.projects) {
+        field.value = content.projects;
         field.dispatchEvent(new Event('input', { bubbles: true }));
         field.dispatchEvent(new Event('change', { bubbles: true }));
         highlightElement(field);

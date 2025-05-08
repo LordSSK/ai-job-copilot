@@ -287,6 +287,8 @@ function initGenerateContent() {
   const experiencePreview = document.getElementById('experience-preview');
   const educationPreview = document.getElementById('education-preview');
   const skillsPreview = document.getElementById('skills-preview');
+  const awardsPreview = document.getElementById('awards-preview');
+  const projectsPreview = document.getElementById('projects-preview');
   const coverLetterPreview = document.getElementById('cover-letter-preview');
   
   // Generate content button handler
@@ -374,6 +376,8 @@ function initGenerateContent() {
       experience: document.getElementById('generate-experience').checked,
       education: document.getElementById('generate-education').checked,
       skills: document.getElementById('generate-skills').checked,
+      awards: document.getElementById('generate-awards').checked,
+      projects: document.getElementById('generate-projects').checked,
       coverLetter: document.getElementById('generate-cover-letter').checked
     };
     
@@ -417,7 +421,9 @@ function initGenerateContent() {
       
       // Check if we have any content
       const hasContent = results.summary || results.experience || 
-                        results.skills || results.coverLetter;
+                        results.education || results.skills || 
+                        results.awards || results.projects ||
+                        results.coverLetter;
       
       if (!hasContent) {
         updateStatus('No content was generated. Please try again or check the model settings.', 'error');
@@ -441,6 +447,14 @@ function initGenerateContent() {
       
       if (options.skills) {
         skillsPreview.textContent = results.skills || 'No skills generated';
+      }
+      
+      if (options.awards) {
+        awardsPreview.textContent = results.awards || 'No awards/achievements generated';
+      }
+      
+      if (options.projects) {
+        projectsPreview.textContent = results.projects || 'No projects generated';
       }
       
       if (options.coverLetter) {
@@ -765,6 +779,8 @@ function loadUserData() {
       const experiencePreview = document.getElementById('experience-preview');
       const educationPreview = document.getElementById('education-preview');
       const skillsPreview = document.getElementById('skills-preview');
+      const awardsPreview = document.getElementById('awards-preview');
+      const projectsPreview = document.getElementById('projects-preview');
       const coverLetterPreview = document.getElementById('cover-letter-preview');
       
       if (data.generatedContent.summary) {
@@ -781,6 +797,14 @@ function loadUserData() {
       
       if (data.generatedContent.skills) {
         skillsPreview.textContent = data.generatedContent.skills;
+      }
+      
+      if (data.generatedContent.awards) {
+        awardsPreview.textContent = data.generatedContent.awards;
+      }
+      
+      if (data.generatedContent.projects) {
+        projectsPreview.textContent = data.generatedContent.projects;
       }
       
       if (data.generatedContent.coverLetter) {

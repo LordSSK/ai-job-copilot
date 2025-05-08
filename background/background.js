@@ -174,6 +174,8 @@ async function generateContent(data) {
     if (options.experience) outputs.push('experience_bullets');
     if (options.education) outputs.push('education');
     if (options.skills) outputs.push('skills');
+    if (options.awards) outputs.push('awards');
+    if (options.projects) outputs.push('projects');
     if (options.coverLetter) outputs.push('cover_letter');
     console.log('Requested outputs:', outputs);
     
@@ -247,13 +249,25 @@ EXPERIENCE_BULLETS: 4-5 achievement-oriented bullet points that showcase the can
   
   if (outputs.includes('education')) {
     prompt += `
-EDUCATION: Format the candidate's educational background in a clear, concise way. Include degree(s), institution(s), graduation year(s), and any relevant honors or achievements. If the resume lacks education details, create a professional format based on the candidate's apparent experience level.
+EDUCATION: Format the candidate's educational background in a clear, concise way. Include degree(s), institution(s), graduation year(s), and any relevant honors or achievements. If the resume lacks education details, create a professional format based on the candidate's apparent experience level. Format in a way that's easy to parse for job application systems.
 `;
   }
   
   if (outputs.includes('skills')) {
     prompt += `
 SKILLS: A list of 8-10 relevant skills the candidate possesses that match the job requirements. Format as a comma-separated list.
+`;
+  }
+  
+  if (outputs.includes('awards')) {
+    prompt += `
+AWARDS: List 3-5 notable achievements, honors, or awards from the candidate's resume that are relevant to the job. If none are explicitly mentioned, derive potential achievements based on their experience. Format each with the title/name of achievement, year received, and a brief description of its significance.
+`;
+  }
+  
+  if (outputs.includes('projects')) {
+    prompt += `
+PROJECTS: Detail 2-4 relevant projects from the candidate's background that showcase skills needed for this job. For each, include project name, timeline, role, technologies used, and 1-2 bullet points highlighting key contributions or outcomes. If not explicit in their resume, derive relevant projects based on their experience.
 `;
   }
   
@@ -279,6 +293,12 @@ EDUCATION:
 SKILLS:
 (Your skills list here...)
 
+AWARDS:
+(Your awards/achievements here...)
+
+PROJECTS:
+(Your projects here...)
+
 COVER_LETTER:
 (Your cover letter here...)
 
@@ -288,6 +308,8 @@ Try to format your response as JSON if possible, like this:
   "experience_bullets": "The generated bullet points...",
   "education": "The generated education details...",
   "skills": "The generated skills list...",
+  "awards": "The generated awards/achievements...",
+  "projects": "The generated projects...",
   "cover_letter": "The generated cover letter..."
 }
 `;
@@ -530,6 +552,14 @@ function parseAIResponse(responseText, requestedOutputs) {
       result.skills = parsedResponse.skills;
     }
     
+    if (requestedOutputs.includes('awards') && parsedResponse.awards) {
+      result.awards = parsedResponse.awards;
+    }
+    
+    if (requestedOutputs.includes('projects') && parsedResponse.projects) {
+      result.projects = parsedResponse.projects;
+    }
+    
     if (requestedOutputs.includes('cover_letter') && parsedResponse.cover_letter) {
       result.coverLetter = parsedResponse.cover_letter;
     }
@@ -560,6 +590,8 @@ function extractSectionsFromText(text) {
     experience_bullets: '',
     education: '',
     skills: '',
+    awards: '',
+    projects: '',
     cover_letter: ''
   };
   
@@ -569,6 +601,8 @@ function extractSectionsFromText(text) {
     experience_bullets: /EXPERIENCE_BULLETS:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EDUCATION:|SKILLS:|COVER_LETTER:|$)/i,
     education: /EDUCATION:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|SKILLS:|COVER_LETTER:|$)/i,
     skills: /SKILLS:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|EDUCATION:|COVER_LETTER:|$)/i,
+    awards: /AWARDS:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|EDUCATION:|SKILLS:|$)/i,
+    projects: /PROJECTS:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|EDUCATION:|SKILLS:|$)/i,
     cover_letter: /COVER_LETTER:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|EDUCATION:|SKILLS:|$)/i
   };
   
@@ -620,6 +654,22 @@ function extractContentUsingFallbackMethod(text, requestedOutputs) {
     const skillsMatch = text.match(/(?:skills)(?:[:.\s-]+)([\s\S]*?)(?:\n\s*\n|\n\s*[A-Z]|$)/i);
     if (skillsMatch && skillsMatch[1]) {
       result.skills = skillsMatch[1].trim();
+    }
+  }
+  
+  // For awards, look for the word "awards" and text following it
+  if (requestedOutputs.includes('awards')) {
+    const awardsMatch = text.match(/(?:awards)(?:[:.\s-]+)([\s\S]*?)(?:\n\s*\n|\n\s*[A-Z]|$)/i);
+    if (awardsMatch && awardsMatch[1]) {
+      result.awards = awardsMatch[1].trim();
+    }
+  }
+  
+  // For projects, look for the word "projects" and text following it
+  if (requestedOutputs.includes('projects')) {
+    const projectsMatch = text.match(/(?:projects)(?:[:.\s-]+)([\s\S]*?)(?:\n\s*\n|\n\s*[A-Z]|$)/i);
+    if (projectsMatch && projectsMatch[1]) {
+      result.projects = projectsMatch[1].trim();
     }
   }
   
@@ -682,6 +732,10 @@ function divideLongTextIntoSections(text, requestedOutputs) {
       result.education = section;
     } else if (output === 'skills') {
       result.skills = section;
+    } else if (output === 'awards') {
+      result.awards = section;
+    } else if (output === 'projects') {
+      result.projects = section;
     } else if (output === 'cover_letter') {
       result.coverLetter = section;
     }
