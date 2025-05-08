@@ -238,6 +238,12 @@ function initGenerateContent() {
       chrome.storage.local.get(['resume', 'jobDescription', 'settings'], resolve);
     });
     
+    console.log('Retrieved data for generation:', {
+      hasResume: !!data.resume,
+      hasJobDescription: !!data.jobDescription,
+      settings: data.settings
+    });
+    
     if (!data.resume) {
       updateStatus('Please upload your resume first', 'error');
       return;
@@ -253,15 +259,55 @@ function initGenerateContent() {
       return;
     }
     
+    // CRITICAL FIX: Make a copy of settings and ensure apiType is set
+    const settings = { ...data.settings };
+    
+    // Check and ensure the API type is properly set
+    // This is a workaround for potential issues with setting storage
+    if (!settings.apiType) {
+      console.warn('API type not found in settings, checking UI element');
+      settings.apiType = document.getElementById('api-type-select').value || 'openai';
+      console.log('Using API type from UI:', settings.apiType);
+    }
+    
     // Check API-specific requirements
-    if (data.settings.apiType === 'openai' && !data.settings.apiKey) {
+    const apiType = settings.apiType;
+    console.log('Using API type for generation:', apiType);
+    
+    if (apiType === 'openai' && !settings.apiKey) {
       updateStatus('Please add your OpenAI API key in settings', 'error');
       return;
     }
     
-    if (data.settings.apiType === 'ollama' && !data.settings.ollamaUrl) {
-      updateStatus('Please add your Ollama server URL in settings', 'error');
-      return;
+    if (apiType === 'ollama') {
+      const ollamaUrl = settings.ollamaUrl || '';
+      if (!ollamaUrl) {
+        updateStatus('Please add your Ollama server URL in settings', 'error');
+        return;
+      }
+      
+      // Validate Ollama model is selected
+      if (!settings.aiModel) {
+        updateStatus('Please select an Ollama model in settings', 'error');
+        return;
+      }
+      
+      // Check if Ollama server is reachable
+      try {
+        updateStatus('Checking Ollama server...', 'progress');
+        const response = await fetch(`${ollamaUrl}/api/version`, { 
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          updateStatus(`Cannot connect to Ollama server at ${ollamaUrl}. Please check if it's running.`, 'error');
+          return;
+        }
+      } catch (error) {
+        updateStatus(`Error connecting to Ollama server: ${error.message}`, 'error');
+        return;
+      }
     }
     
     // Get selected options
@@ -277,52 +323,95 @@ function initGenerateContent() {
       return;
     }
     
-    updateStatus('Generating content...', 'progress');
+    updateStatus(`Generating content using ${apiType === 'openai' ? 'OpenAI' : 'Ollama'}...`, 'progress');
     showProgress(true);
     
     try {
+      console.log('Sending generate content request:', {
+        apiType: apiType,
+        model: settings.aiModel,
+        options: options
+      });
+      
       // Call background script to handle API request
-      const results = await new Promise(resolve => {
+      const results = await new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({
           action: 'generateContent',
           data: {
             resume: data.resume,
             jobDescription: data.jobDescription,
             options: options,
-            settings: data.settings
+            settings: settings  // Use our fixed settings object
           }
-        }, resolve);
+        }, response => {
+          console.log('Received generateContent response:', response);
+          
+          if (response && response.error) {
+            reject(new Error(response.error));
+          } else {
+            resolve(response);
+          }
+        });
       });
       
-      if (results) {
-        // Update UI with generated content
-        if (options.summary) {
-          summaryPreview.textContent = results.summary || 'No summary generated';
-        }
-        
-        if (options.experience) {
-          experiencePreview.textContent = results.experience || 'No experience bullets generated';
-        }
-        
-        if (options.skills) {
-          skillsPreview.textContent = results.skills || 'No skills generated';
-        }
-        
-        if (options.coverLetter) {
-          coverLetterPreview.textContent = results.coverLetter || 'No cover letter generated';
-        }
-        
-        // Save generated content
-        chrome.storage.local.set({ generatedContent: results });
-        
-        // Show the content
-        generatedContent.hidden = false;
-        updateStatus('Content generated successfully');
-      } else {
-        updateStatus('Failed to generate content', 'error');
+      console.log('Results received from AI:', results);
+      
+      // Check if we have any content
+      const hasContent = results.summary || results.experience || 
+                        results.skills || results.coverLetter;
+      
+      if (!hasContent) {
+        updateStatus('No content was generated. Please try again or check the model settings.', 'error');
+        console.error('No content in results:', results);
+        showProgress(false);
+        return;
       }
+      
+      // Update UI with generated content
+      if (options.summary) {
+        summaryPreview.textContent = results.summary || 'No summary generated';
+      }
+      
+      if (options.experience) {
+        experiencePreview.textContent = results.experience || 'No experience bullets generated';
+      }
+      
+      if (options.skills) {
+        skillsPreview.textContent = results.skills || 'No skills generated';
+      }
+      
+      if (options.coverLetter) {
+        coverLetterPreview.textContent = results.coverLetter || 'No cover letter generated';
+      }
+      
+      // Save generated content
+      chrome.storage.local.set({ generatedContent: results });
+      
+      // Show the content
+      generatedContent.hidden = false;
+      updateStatus('Content generated successfully');
     } catch (error) {
-      updateStatus('Error: ' + error.message, 'error');
+      // Handle specific Ollama errors with more helpful guidance
+      if (error.message.includes('Ollama API error: Forbidden') || 
+          error.message.includes('CORS') || 
+          error.message.includes('OLLAMA_ORIGINS')) {
+        
+        // Show specific error message for CORS issues
+        updateStatus('Error: Ollama server has CORS restrictions. See console for instructions.', 'error');
+        console.error('Ollama CORS Error:', error.message);
+        console.info('To fix Ollama CORS issues, run Ollama with the following environment variable:');
+        console.info('   OLLAMA_ORIGINS=* ollama serve');
+        console.info('On macOS/Linux, you can use:');
+        console.info('   OLLAMA_ORIGINS=* ollama serve');
+        console.info('On Windows, you can use:');
+        console.info('   set OLLAMA_ORIGINS=*');
+        console.info('   ollama serve');
+        
+      } else {
+        // Handle other errors
+        updateStatus('Error: ' + error.message, 'error');
+        console.error('Error in generate content flow:', error);
+      }
     } finally {
       showProgress(false);
     }
@@ -515,6 +604,7 @@ function initSettings() {
   // Save settings
   saveSettingsBtn.addEventListener('click', () => {
     const apiType = apiTypeSelect.value;
+    console.log('Saving settings with API type:', apiType);
     
     const settings = {
       apiType: apiType,
@@ -528,17 +618,28 @@ function initSettings() {
       settings.ollamaUrl = ollamaUrlInput.value.trim() || 'http://localhost:11434';
     }
     
+    console.log('Full settings object being saved:', settings);
+    
     chrome.storage.local.set({ settings }, () => {
-      updateStatus('Settings saved');
+      if (chrome.runtime.lastError) {
+        console.error('Error saving settings:', chrome.runtime.lastError);
+        updateStatus('Error saving settings: ' + chrome.runtime.lastError.message, 'error');
+      } else {
+        console.log('Settings saved successfully:', settings);
+        updateStatus('Settings saved');
+      }
     });
   });
   
   // Load settings
   chrome.storage.local.get('settings', (data) => {
+    console.log('Loading settings from storage:', data.settings);
+    
     if (data.settings) {
       // Set API type
       const apiType = data.settings.apiType || 'openai';
       apiTypeSelect.value = apiType;
+      console.log('Setting API type to:', apiType);
       
       // Update visible settings sections
       document.getElementById('openai-settings').hidden = apiType === 'ollama';
@@ -547,10 +648,12 @@ function initSettings() {
       // Set values
       apiKeyInput.value = data.settings.apiKey || '';
       ollamaUrlInput.value = data.settings.ollamaUrl || 'http://localhost:11434';
+      console.log('Set Ollama URL to:', ollamaUrlInput.value);
       
       // Update model options after setting URL value
       updateModelOptions(apiType);
     } else {
+      console.log('No settings found, initializing with defaults');
       // Initialize with default options
       updateModelOptions('openai');
     }

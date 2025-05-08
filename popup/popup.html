@@ -133,6 +133,11 @@
             <label for="ollama-url-input">Server URL</label>
             <input type="text" id="ollama-url-input" placeholder="http://localhost:11434" value="http://localhost:11434">
             <p class="setting-help">URL of your Ollama server (typically running locally).</p>
+            <div class="ollama-help-box">
+              <p><strong>Note:</strong> If you encounter CORS errors, you need to start Ollama with:</p>
+              <code>OLLAMA_ORIGINS=* ollama serve</code>
+              <p>This allows your browser extension to access the Ollama API.</p>
+            </div>
           </div>
           
           <div class="setting-group">

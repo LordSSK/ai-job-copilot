@@ -369,4 +369,24 @@ select, input {
 /* Utils */
 [hidden] {
   display: none !important;
+}
+
+.ollama-help-box {
+  background-color: #f8f9fa;
+  border-left: 4px solid #17a2b8;
+  padding: 10px 12px;
+  margin-top: 10px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.ollama-help-box code {
+  background-color: #e9ecef;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+  display: block;
+  margin: 8px 0;
+  white-space: nowrap;
+  overflow-x: auto;
 } 
