@@ -1,17 +1,3 @@
-// Listen for messages from popup or background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'extractJobDescription') {
-    const jobDescription = extractJobDescription();
-    sendResponse({ jobDescription });
-  } else if (request.action === 'autofillApplication') {
-    const result = autofillApplication(request.data);
-    sendResponse(result);
-  }
-  
-  // Required for asynchronous response
-  return true;
-});
-
 /**
  * Extract job description from the current page
  * Supports common job boards: Workday, Greenhouse, Lever, and generic job boards

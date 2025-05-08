@@ -8,8 +8,98 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ error: error.message });
       });
     return true; // Indicates async response
+  } else if (request.action === 'extractJobDescription') {
+    // Execute content script function through scripting API
+    executeContentScript(sender.tab.id, { function: 'extractJobDescription' })
+      .then(result => sendResponse({ jobDescription: result }))
+      .catch(error => {
+        console.error('Error extracting job description:', error);
+        sendResponse({ error: error.message });
+      });
+    return true; // Indicates async response
+  } else if (request.action === 'autofillApplication') {
+    // Execute content script function through scripting API
+    executeContentScript(sender.tab.id, { 
+      function: 'autofillApplication',
+      args: [request.data]
+    })
+    .then(result => sendResponse(result))
+    .catch(error => {
+      console.error('Error autofilling application:', error);
+      sendResponse({ error: error.message, success: false });
+    });
+    return true; // Indicates async response
   }
 });
+
+/**
+ * Execute a function in the content script context
+ */
+async function executeContentScript(tabId, details) {
+  // Ensure content script is injected if not already present
+  await ensureContentScriptsInjected(tabId);
+  
+  // Execute the function in the content script context
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: executeInPage,
+    args: [details]
+  });
+  
+  if (result.error) {
+    throw new Error(result.error);
+  }
+  
+  return result.result;
+}
+
+/**
+ * Ensure required content scripts are injected
+ */
+async function ensureContentScriptsInjected(tabId) {
+  try {
+    // Check if we need to inject the main content script functions
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => typeof extractJobDescription !== 'undefined'
+    }).then(([result]) => {
+      // If content script functions aren't available, inject them
+      if (!result.result) {
+        return chrome.scripting.executeScript({
+          target: { tabId },
+          files: ['content/jobfill-functions.js']
+        });
+      }
+    });
+    
+    // Add CSS for styling elements
+    await chrome.scripting.insertCSS({
+      target: { tabId },
+      files: ['content/jobfill-styles.css']
+    });
+  } catch (error) {
+    console.error('Error injecting content scripts:', error);
+    throw error;
+  }
+}
+
+/**
+ * Function to execute in the content script context
+ */
+function executeInPage({ function: funcName, args = [] }) {
+  try {
+    // Ensure the function exists in the content script context
+    if (typeof window[funcName] !== 'function') {
+      return { error: `Function ${funcName} not found in content script` };
+    }
+    
+    // Execute the function with the provided arguments
+    const result = window[funcName](...args);
+    return result;
+  } catch (error) {
+    return { error: error.message };
+  }
+}
 
 /**
  * Generate application content based on resume and job description using OpenAI API
@@ -231,10 +321,52 @@ function extractSectionsFromText(text) {
   return sections;
 }
 
+// Register service worker activation event (Manifest V3)
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("JobFill extension installed");
+});
+
 // Handle auth status changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.settings) {
     // API key or other settings have changed
     console.log('Settings updated');
   }
-}); 
+});
+
+// Handle tab updates - initialize content scripts when needed
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // If the page has completed loading and URL is a job board
+  if (changeInfo.status === 'complete' && isJobBoard(tab.url)) {
+    // Ensure content scripts are injected
+    ensureContentScriptsInjected(tabId)
+      .catch(error => console.error('Error injecting content scripts on tab update:', error));
+  }
+});
+
+/**
+ * Check if the URL is a known job board
+ */
+function isJobBoard(url) {
+  if (!url) return false;
+  
+  const jobBoardDomains = [
+    'workday.com',
+    'greenhouse.io',
+    'lever.co',
+    'indeed.com',
+    'linkedin.com/jobs',
+    'glassdoor.com/job',
+    'monster.com',
+    'ziprecruiter.com',
+    'simplyhired.com',
+    'careerbuilder.com',
+    'dice.com',
+    'jobs.apple.com',
+    'careers.google.com',
+    'careers.microsoft.com',
+    'amazon.jobs'
+  ];
+  
+  return jobBoardDomains.some(domain => url.includes(domain));
+} 

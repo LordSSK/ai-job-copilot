@@ -1,0 +1,59 @@
+/* Styling for highlighted form fields */
+.jobfill-highlighted {
+  border: 2px solid #4CAF50 !important;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.5) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Badge that appears next to filled fields */
+.jobfill-badge {
+  position: absolute;
+  background-color: #4CAF50;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 9999;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+
+/* Toast notification styles */
+.jobfill-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 10000;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  animation: jobfill-toast-appear 0.3s, jobfill-toast-disappear 0.3s 4.7s;
+}
+
+/* Toast animations */
+@keyframes jobfill-toast-appear {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes jobfill-toast-disappear {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+} 
