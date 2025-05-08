@@ -228,6 +228,7 @@ function initGenerateContent() {
   
   const summaryPreview = document.getElementById('summary-preview');
   const experiencePreview = document.getElementById('experience-preview');
+  const educationPreview = document.getElementById('education-preview');
   const skillsPreview = document.getElementById('skills-preview');
   const coverLetterPreview = document.getElementById('cover-letter-preview');
   
@@ -314,6 +315,7 @@ function initGenerateContent() {
     const options = {
       summary: document.getElementById('generate-summary').checked,
       experience: document.getElementById('generate-experience').checked,
+      education: document.getElementById('generate-education').checked,
       skills: document.getElementById('generate-skills').checked,
       coverLetter: document.getElementById('generate-cover-letter').checked
     };
@@ -374,6 +376,10 @@ function initGenerateContent() {
       
       if (options.experience) {
         experiencePreview.textContent = results.experience || 'No experience bullets generated';
+      }
+      
+      if (options.education) {
+        educationPreview.textContent = results.education || 'No education generated';
       }
       
       if (options.skills) {
@@ -701,6 +707,7 @@ function loadUserData() {
       const generatedContent = document.getElementById('generated-content-container');
       const summaryPreview = document.getElementById('summary-preview');
       const experiencePreview = document.getElementById('experience-preview');
+      const educationPreview = document.getElementById('education-preview');
       const skillsPreview = document.getElementById('skills-preview');
       const coverLetterPreview = document.getElementById('cover-letter-preview');
       
@@ -710,6 +717,10 @@ function loadUserData() {
       
       if (data.generatedContent.experience) {
         experiencePreview.textContent = data.generatedContent.experience;
+      }
+      
+      if (data.generatedContent.education) {
+        educationPreview.textContent = data.generatedContent.education;
       }
       
       if (data.generatedContent.skills) {

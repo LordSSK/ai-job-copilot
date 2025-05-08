@@ -172,6 +172,7 @@ async function generateContent(data) {
     const outputs = [];
     if (options.summary) outputs.push('professional_summary');
     if (options.experience) outputs.push('experience_bullets');
+    if (options.education) outputs.push('education');
     if (options.skills) outputs.push('skills');
     if (options.coverLetter) outputs.push('cover_letter');
     console.log('Requested outputs:', outputs);
@@ -249,6 +250,12 @@ EXPERIENCE_BULLETS: 4-5 achievement-oriented bullet points that showcase the can
 `;
   }
   
+  if (outputs.includes('education')) {
+    prompt += `
+EDUCATION: Format the candidate's educational background in a clear, concise way. Include degree(s), institution(s), graduation year(s), and any relevant honors or achievements. If the resume lacks education details, create a professional format based on the candidate's apparent experience level.
+`;
+  }
+  
   if (outputs.includes('skills')) {
     prompt += `
 SKILLS: A list of 8-10 relevant skills the candidate possesses that match the job requirements. Format as a comma-separated list.
@@ -271,6 +278,9 @@ PROFESSIONAL_SUMMARY:
 EXPERIENCE_BULLETS:
 (Your experience bullets here...)
 
+EDUCATION:
+(Your education details here...)
+
 SKILLS:
 (Your skills list here...)
 
@@ -281,6 +291,7 @@ Try to format your response as JSON if possible, like this:
 {
   "professional_summary": "The generated summary text...",
   "experience_bullets": "The generated bullet points...",
+  "education": "The generated education details...",
   "skills": "The generated skills list...",
   "cover_letter": "The generated cover letter..."
 }
@@ -516,6 +527,10 @@ function parseAIResponse(responseText, requestedOutputs) {
       result.experience = parsedResponse.experience_bullets;
     }
     
+    if (requestedOutputs.includes('education') && parsedResponse.education) {
+      result.education = parsedResponse.education;
+    }
+    
     if (requestedOutputs.includes('skills') && parsedResponse.skills) {
       result.skills = parsedResponse.skills;
     }
@@ -548,16 +563,18 @@ function extractSectionsFromText(text) {
   const sections = {
     professional_summary: '',
     experience_bullets: '',
+    education: '',
     skills: '',
     cover_letter: ''
   };
   
   // Define regex patterns for each section
   const patterns = {
-    professional_summary: /PROFESSIONAL_SUMMARY:?([\s\S]*?)(?=EXPERIENCE_BULLETS:|SKILLS:|COVER_LETTER:|$)/i,
-    experience_bullets: /EXPERIENCE_BULLETS:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|SKILLS:|COVER_LETTER:|$)/i,
-    skills: /SKILLS:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|COVER_LETTER:|$)/i,
-    cover_letter: /COVER_LETTER:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|SKILLS:|$)/i
+    professional_summary: /PROFESSIONAL_SUMMARY:?([\s\S]*?)(?=EXPERIENCE_BULLETS:|EDUCATION:|SKILLS:|COVER_LETTER:|$)/i,
+    experience_bullets: /EXPERIENCE_BULLETS:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EDUCATION:|SKILLS:|COVER_LETTER:|$)/i,
+    education: /EDUCATION:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|SKILLS:|COVER_LETTER:|$)/i,
+    skills: /SKILLS:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|EDUCATION:|COVER_LETTER:|$)/i,
+    cover_letter: /COVER_LETTER:?([\s\S]*?)(?=PROFESSIONAL_SUMMARY:|EXPERIENCE_BULLETS:|EDUCATION:|SKILLS:|$)/i
   };
   
   // Extract each section
@@ -592,6 +609,14 @@ function extractContentUsingFallbackMethod(text, requestedOutputs) {
     const expMatch = text.match(/(?:experience\s*bullets|experience)(?:[:.\s-]+)([\s\S]*?)(?:\n\s*\n|\n\s*[A-Z]|$)/i);
     if (expMatch && expMatch[1]) {
       result.experience = expMatch[1].trim();
+    }
+  }
+  
+  // For education, look for the word "education" and text following it
+  if (requestedOutputs.includes('education')) {
+    const educationMatch = text.match(/(?:education)(?:[:.\s-]+)([\s\S]*?)(?:\n\s*\n|\n\s*[A-Z]|$)/i);
+    if (educationMatch && educationMatch[1]) {
+      result.education = educationMatch[1].trim();
     }
   }
   
@@ -658,6 +683,8 @@ function divideLongTextIntoSections(text, requestedOutputs) {
       result.summary = section;
     } else if (output === 'experience_bullets') {
       result.experience = section;
+    } else if (output === 'education') {
+      result.education = section;
     } else if (output === 'skills') {
       result.skills = section;
     } else if (output === 'cover_letter') {

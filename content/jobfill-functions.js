@@ -297,6 +297,25 @@ function autofillWorkday(content) {
     });
   }
   
+  // Find and fill education fields
+  const educationFields = Array.from(textareaFields).filter(el => {
+    const label = findLabelForElement(el);
+    return label && (
+      label.match(/education|degree|university|college|academic/i) ||
+      el.placeholder && el.placeholder.match(/education|degree|university|college|academic/i)
+    );
+  });
+  
+  if (educationFields.length > 0 && content.education) {
+    educationFields.forEach(field => {
+      field.value = content.education;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(field);
+      filledFields++;
+    });
+  }
+  
   return { success: filledFields > 0, filled: filledFields };
 }
 
@@ -327,6 +346,12 @@ function autofillGreenhouse(content) {
       filledFields++;
     } else if (label.match(/experience|accomplishments/i) && content.experience) {
       field.value = content.experience;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(field);
+      filledFields++;
+    } else if (label.match(/education|degree|university|college|academic/i) && content.education) {
+      field.value = content.education;
       field.dispatchEvent(new Event('input', { bubbles: true }));
       field.dispatchEvent(new Event('change', { bubbles: true }));
       highlightElement(field);
@@ -366,6 +391,12 @@ function autofillLever(content) {
     
     if (label.match(/experience|accomplishments/i) && content.experience) {
       textarea.value = content.experience;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      highlightElement(textarea);
+      filledFields++;
+    } else if (label.match(/education|degree|university|college|academic/i) && content.education) {
+      textarea.value = content.education;
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       textarea.dispatchEvent(new Event('change', { bubbles: true }));
       highlightElement(textarea);
@@ -451,6 +482,20 @@ function autofillGeneric(content) {
       
       if (content.skills) {
         field.value = content.skills;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        highlightElement(field);
+        filledFields++;
+      }
+    }
+    // Check for education fields
+    else if ((label && label.match(/education|degree|university|college|academic/i)) || 
+             placeholderText.match(/education|degree|university|college|academic/i) ||
+             fieldId.match(/education|degree|university|college|academic/i) ||
+             fieldName.match(/education|degree|university|college|academic/i)) {
+      
+      if (content.education) {
+        field.value = content.education;
         field.dispatchEvent(new Event('input', { bubbles: true }));
         field.dispatchEvent(new Event('change', { bubbles: true }));
         highlightElement(field);
