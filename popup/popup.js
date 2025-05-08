@@ -101,26 +101,83 @@ function initResumeUpload() {
       let content = '';
       
       if (file.type === 'application/pdf') {
-        // For PDFs, we'll just show a placeholder and process it in background
-        content = 'PDF content loaded. Ready for processing.';
+        // Show loading status while parsing PDF
+        resumeContent.textContent = 'Parsing PDF content...';
+        updateStatus('Processing PDF content...', 'progress');
         
-        // In a real extension, you would use a PDF parsing library
-        // or send the PDF to your backend/API for processing
+        // Use PDF.js to extract text from PDF
+        extractPDFText(e.target.result).then(extractedText => {
+          content = extractedText || 'No text content could be extracted from this PDF.';
+          resumeContent.textContent = content;
+          
+          // Save to storage
+          saveResume(file, content);
+          updateStatus('Resume saved');
+        }).catch(error => {
+          console.error('Error extracting PDF text:', error);
+          content = 'Error extracting PDF content. Please try another file.';
+          resumeContent.textContent = content;
+          updateStatus('Error processing PDF', 'error');
+          
+          // Still save the file reference with error message
+          saveResume(file, content);
+        });
       } else {
         // For text files, display the content
         content = e.target.result;
+        resumeContent.textContent = content;
+        
+        // Save to storage
+        saveResume(file, content);
+        updateStatus('Resume saved');
       }
-      
-      resumeContent.textContent = content;
-      
-      // Save to storage
-      saveResume(file, content);
     };
     
     if (file.type === 'application/pdf') {
       reader.readAsArrayBuffer(file);
     } else {
       reader.readAsText(file);
+    }
+  }
+
+  // PDF.js text extraction function
+  async function extractPDFText(arrayBuffer) {
+    try {
+      // Wait for PDF.js to load using our global promise
+      await window.pdfJsLoaded;
+      
+      // Make sure PDF.js loaded properly
+      if (typeof pdfjsLib === 'undefined') {
+        throw new Error('PDF.js library not available');
+      }
+      
+      // Load the PDF using PDF.js
+      const pdfData = new Uint8Array(arrayBuffer);
+      const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+      
+      const pdf = await loadingTask.promise;
+      let extractedText = '';
+      
+      // Get the total number of pages
+      const numPages = pdf.numPages;
+      
+      // Process each page
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        
+        // Extract text from the page
+        const pageText = textContent.items
+          .map(item => item.str)
+          .join(' ');
+        
+        extractedText += pageText + '\n\n';
+      }
+      
+      return extractedText.trim();
+    } catch (error) {
+      console.error('PDF.js extraction error:', error);
+      throw error;
     }
   }
 
@@ -689,9 +746,8 @@ function loadUserData() {
       const resumeContent = document.getElementById('resume-content');
       
       resumeFilename.textContent = data.resume.filename;
-      resumeContent.textContent = data.resume.type === 'application/pdf' 
-        ? 'PDF content loaded. Ready for processing.'
-        : data.resume.content;
+      // Display the actual content regardless of file type
+      resumeContent.textContent = data.resume.content || 'No content available';
       
       resumePreview.hidden = false;
       uploadArea.hidden = true;

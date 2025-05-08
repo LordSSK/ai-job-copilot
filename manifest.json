@@ -41,7 +41,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "styles/*"],
+      "resources": ["assets/*", "styles/*", "utils/*", "lib/*"],
       "matches": ["<all_urls>"]
     }
   ]

@@ -179,11 +179,6 @@ async function generateContent(data) {
     
     // Extract the actual resume content
     let resumeContent = resume.content;
-    if (resume.type === 'application/pdf') {
-      // In a real implementation, you would use a PDF parser library
-      // For simplicity, we'll just use a placeholder message
-      resumeContent = "PDF EXTRACTION NOT IMPLEMENTED IN THIS DEMO";
-    }
     
     // Prepare prompt for AI
     const prompt = constructPrompt(resumeContent, jobDescription.content, outputs);
