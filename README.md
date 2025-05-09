@@ -57,6 +57,34 @@ A browser extension that uses AI to tailor your resume and cover letter based on
 5. Click "Generate Content" to create personalized application materials
 6. Use "Autofill Application" to automatically fill out application forms
 
+## Screenshots
+
+Here are some screenshots showcasing the ResumeAI Tailor extension:
+
+![Resume Upload Screen](assets/1.png)
+*Resume Upload - Upload your resume in PDF or TXT format to be parsed by the extension*
+
+![Job Description Extraction](assets/2.png)
+*Job Description Extraction - Extract job details from the current page or paste them manually*
+
+![Content Generation Options](assets/3.png)
+*Content Generation - Select what content you want to generate for your application*
+
+![Generated Professional Summary](assets/4.png)
+*Generated Professional Summary - Example of a tailored professional summary based on your resume and the job description*
+
+![Generated Experience Bullets](assets/5.png)
+*Experience Bullets - AI-generated experience bullets highlighting relevant skills for the job*
+
+![Cover Letter Generation](assets/6.png)
+*Cover Letter - Generate a personalized cover letter tailored to the job*
+
+![Settings Configuration](assets/7.png)
+*Settings - Configure your AI provider preferences and API keys*
+
+![Auto-fill in Action](assets/8.png)
+*Auto-fill Feature - The extension automatically filling job application forms*
+
 ## Configuration
 
 In the "Settings" tab:
