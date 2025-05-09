@@ -94,6 +94,15 @@ header h1 {
   border: 1px solid var(--border-color);
 }
 
+.btn-danger {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #d32f2f;
+}
+
 .btn-sm {
   font-size: 12px;
   padding: 4px 8px;

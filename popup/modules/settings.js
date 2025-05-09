@@ -12,6 +12,7 @@ function initSettings() {
   const apiTypeSelect = document.getElementById('api-type-select');
   const ollamaUrlInput = document.getElementById('ollama-url-input');
   const saveSettingsBtn = document.getElementById('save-settings-btn');
+  const clearDataBtn = document.getElementById('clear-data-btn');
   
   // Toggle settings based on API type
   apiTypeSelect.addEventListener('change', () => {
@@ -130,6 +131,39 @@ function initSettings() {
   ollamaUrlInput.addEventListener('blur', () => {
     if (apiTypeSelect.value === 'ollama') {
       updateModelOptions('ollama');
+    }
+  });
+  
+  // Clear all user data function
+  clearDataBtn.addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear all your data? This will remove your resume, job descriptions, and all generated content.')) {
+      // Preserve settings while clearing everything else
+      storageUtils.get('settings').then(settingsData => {
+        const settings = settingsData.settings;
+        
+        // Clear all storage
+        storageUtils.clear().then(() => {
+          // Restore just the settings
+          if (settings) {
+            storageUtils.save({ settings }).then(() => {
+              updateStatus('All data cleared successfully');
+              
+              // Reset UI elements
+              const resumePreview = document.getElementById('resume-preview');
+              const uploadArea = document.getElementById('resume-upload-area');
+              const jobDescription = document.getElementById('job-description');
+              const generatedContent = document.getElementById('generated-content-container');
+              
+              if (resumePreview) resumePreview.hidden = true;
+              if (uploadArea) uploadArea.hidden = false;
+              if (jobDescription) jobDescription.value = '';
+              if (generatedContent) generatedContent.hidden = true;
+            });
+          } else {
+            updateStatus('All data cleared successfully');
+          }
+        });
+      });
     }
   });
   
