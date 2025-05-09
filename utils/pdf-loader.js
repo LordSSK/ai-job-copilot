@@ -1,5 +1,9 @@
-// Global promise that resolves when PDF.js is loaded
-window.pdfJsLoaded = new Promise((resolve, reject) => {
+/**
+ * PDF.js loader utility
+ */
+
+// Create a promise that resolves when PDF.js is loaded
+const pdfJsLoaded = new Promise((resolve, reject) => {
   // Load PDF.js from local files
   try {
     // Create script element for the PDF.js library
@@ -32,4 +36,6 @@ window.pdfJsLoaded = new Promise((resolve, reject) => {
     console.error('Error setting up PDF.js:', error);
     reject(error);
   }
-}); 
+});
+
+export { pdfJsLoaded }; 

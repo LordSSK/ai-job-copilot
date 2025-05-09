@@ -72,7 +72,7 @@ async function initializeStorage(defaultData) {
 }
 
 // Export all functions
-window.storageUtils = {
+export const storageUtils = {
   get: getFromStorage,
   save: saveToStorage,
   remove: removeFromStorage,

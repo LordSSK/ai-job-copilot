@@ -73,14 +73,23 @@ job-fill/
 ├── assets/                # Icons and other static assets
 ├── popup/                 # Popup UI
 │   ├── popup.html
-│   └── popup.js
+│   ├── popup.js           # Main popup entry point (imports modules)
+│   └── modules/           # Modular popup components
+│       ├── tabs.js        # Tab navigation functionality
+│       ├── resume.js      # Resume upload handling
+│       ├── job-description.js # Job description handling
+│       ├── content-generator.js # Content generation
+│       ├── settings.js    # Settings management
+│       ├── ui-helpers.js  # UI utility functions
+│       ├── formatters.js  # Content formatting functions
+│       └── user-data.js   # User data loading functionality
 ├── content/               # Content scripts
 │   └── jobfill-functions.js
 ├── background/            # Background scripts
 │   └── background.js
 ├── utils/                 # Utility modules
-│   ├── storage.js
-│   └── pdf-loader.js
+│   ├── storage.js         # Chrome storage operations as ES module
+│   └── pdf-loader.js      # PDF parsing functionality as ES module
 ├── styles/                # CSS files
 │   ├── popup.css
 │   └── jobfill-styles.css
@@ -89,19 +98,30 @@ job-fill/
 
 ### Project Architecture
 
-The JobFill Chrome extension is built with a modern architecture optimized for Chrome Extensions Manifest V3. Here's a detailed breakdown of each component:
+The JobFill Chrome extension is built with a modern modular architecture optimized for Chrome Extensions Manifest V3. Here's a detailed breakdown of each component:
 
 #### Core Components
 
 1. **User Interface (Popup)** 
    - **Location**: `popup/` directory
-   - **Key Files**: `popup.html`, `popup.js`
+   - **Key Files**: 
+     - `popup.html`, `popup.js` (main entry point)
+     - Modular components in `popup/modules/`
+   - **Module Organization**:
+     - `tabs.js`: Tab navigation functionality
+     - `resume.js`: Resume upload and processing
+     - `job-description.js`: Job description extraction
+     - `content-generator.js`: AI content generation
+     - `settings.js`: Settings management
+     - `ui-helpers.js`: UI utility functions
+     - `formatters.js`: Content formatting functions
+     - `user-data.js`: User data loading
    - **Functionality**: Provides the main user interface with tabs for:
      - Resume upload and parsing
      - Job description extraction and editing
      - Content generation with customizable options
      - Settings configuration
-   - **Technologies**: HTML, CSS, Vanilla JavaScript
+   - **Technologies**: HTML, CSS, ES Modules JavaScript
 
 2. **Content Scripts**
    - **Location**: `content/` directory
