@@ -64,12 +64,135 @@ In the "Settings" tab:
 - Enter your OpenAI API key or configure Ollama server URL
 - Select the AI model to use for content generation
 
+## Architecture
+
+ResumeAI Tailor is built as a browser extension following Chrome's Extension Manifest V3 architecture. The extension is structured with a modular design to ensure maintainability, performance, and security.
+
+### Project Structure
+
+```
+resumeai-tailor/
+├── manifest.json          # Extension manifest
+├── package.json           # Project dependencies and scripts
+├── .gitignore             # Git ignore configuration
+├── assets/                # Icons and other static assets
+├── popup/                 # Popup UI
+│   ├── popup.html         # Main popup HTML structure
+│   ├── popup.js           # Main popup entry point (imports modules)
+│   └── modules/           # Modular popup components
+│       ├── tabs.js        # Tab navigation functionality
+│       ├── resume.js      # Resume upload handling
+│       ├── job-description.js # Job description handling
+│       ├── content-generator.js # Content generation
+│       ├── settings.js    # Settings management
+│       └── ui-helpers.js  # UI utility functions
+├── content/               # Content scripts
+│   ├── jobfill-functions.js # Functions to interact with job sites
+│   └── jobfill-styles.css # Styles for content script interfaces
+├── background/            # Background scripts
+│   └── background.js      # Background service worker
+├── utils/                 # Utility modules
+│   ├── storage.js         # Chrome storage operations
+│   └── pdf-loader.js      # PDF parsing functionality
+├── styles/                # CSS files
+│   └── popup.css          # Styles for popup UI
+└── lib/                   # External libraries
+    └── pdf.js             # PDF parsing library
+```
+
+### Core Components
+
+#### 1. User Interface (Popup)
+- **Purpose**: Provides the main interface for users to interact with the extension
+- **Key Files**: `popup/popup.html`, `popup/popup.js`
+- **Features**:
+  - Tab-based interface for different functionalities
+  - Resume upload and parsing
+  - Job description extraction and editing
+  - Content generation with AI
+  - Settings configuration
+
+#### 2. Content Scripts
+- **Purpose**: Interact with job posting websites to extract data and auto-fill forms
+- **Key Files**: `content/jobfill-functions.js`
+- **Features**:
+  - Extract job descriptions from various job platforms
+  - Identify form fields for auto-filling
+  - Apply generated content to job application forms
+  - Handle platform-specific DOM manipulation
+
+#### 3. Background Service
+- **Purpose**: Orchestrate communication and perform operations in the background
+- **Key Files**: `background/background.js`
+- **Features**:
+  - Manage communication between popup and content scripts
+  - Handle API calls to AI providers (OpenAI/Ollama)
+  - Process data and construct AI prompts
+  - Parse and structure AI responses
+
+#### 4. Utility Modules
+- **Purpose**: Provide reusable functionality across the extension
+- **Key Files**: `utils/storage.js`, `utils/pdf-loader.js`
+- **Features**:
+  - Chrome storage operations
+  - PDF parsing and text extraction
+  - Data formatting and validation
+
+### Data Flow
+
+1. **Resume Processing**:
+   - User uploads resume → PDF processing → Text extraction → Storage
+   
+2. **Job Description Extraction**:
+   - User visits job site → Content script extracts job description → Data sent to popup → User can edit if needed
+
+3. **Content Generation**:
+   - User requests content generation → Resume and job data sent to background script → AI prompt constructed → API call made → Structured response parsed → Formatted content displayed to user
+
+4. **Application Auto-fill**:
+   - User initiates auto-fill → Generated content sent to content script → Form fields identified → Data mapped to appropriate fields → Forms filled
+
+### AI Integration
+
+The extension supports two AI backends:
+
+1. **OpenAI API**:
+   - Uses models like GPT-4/GPT-4o
+   - Requires user's API key
+   - Offers high-quality content generation
+
+2. **Ollama (Local)**:
+   - Runs locally using models like Llama 2
+   - Privacy-focused option with no data leaving the user's computer
+   - Requires local Ollama installation
+
+### Security Considerations
+
+- Resume and job data stored locally in Chrome storage
+- API keys securely managed with appropriate permissions
+- No unnecessary data transmission outside the extension
+- Content scripts limited to specific job platforms
+
 ## Development
 
 - `npm run dev`: Run the extension in development mode
 - `npm run build`: Build the extension for production
 - `npm run lint`: Lint the codebase
 - `npm run test`: Run tests
+
+### Extending the Extension
+
+1. **Adding New Job Platforms**:
+   - Create a new extraction function in `content/jobfill-functions.js`
+   - Add the domain to the `matches` property in `manifest.json`
+
+2. **Supporting New AI Providers**:
+   - Add provider configuration in `popup/modules/settings.js`
+   - Implement the API integration in `background/background.js`
+
+3. **Enhancing the UI**:
+   - Modify `popup/popup.html` and `styles/popup.css`
+   - Add new UI components in `popup/modules/`
 
 ## License
 
