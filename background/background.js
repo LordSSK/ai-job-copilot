@@ -122,6 +122,7 @@ async function generateContent(data) {
       apiType: settings.apiType,
       aiModel: settings.aiModel,
       hasApiKey: !!settings.apiKey,
+      hasGeminiApiKey: !!settings.geminiApiKey,
       hasOllamaUrl: !!settings.ollamaUrl
     });
     
@@ -154,7 +155,7 @@ async function generateContent(data) {
     // Normalize the API type
     if (typeof apiTypeRaw === 'string') {
       const normalizedType = apiTypeRaw.toLowerCase().trim();
-      if (normalizedType === 'ollama' || normalizedType === 'openai') {
+      if (['ollama', 'openai', 'gemini'].includes(normalizedType)) {
         apiType = normalizedType;
       } else {
         console.warn(`Unknown API type "${apiTypeRaw}", defaulting to "openai"`);
@@ -165,7 +166,11 @@ async function generateContent(data) {
     
     console.log('Using normalized API type:', apiType);
     
-    const aiModel = settings.aiModel || (apiType === 'openai' ? 'gpt-3.5-turbo' : 'llama2');
+    const aiModel = settings.aiModel || (
+      apiType === 'openai' ? 'gpt-3.5-turbo' : 
+      apiType === 'gemini' ? 'gemini-1.5-pro' : 
+      'llama2'
+    );
     console.log('Selected AI model:', aiModel);
     
     // Validate settings based on API type
@@ -176,6 +181,12 @@ async function generateContent(data) {
       if (!settings.apiKey) {
         console.error('OpenAI API key is missing');
         throw new Error('API key not found. Please add your OpenAI API key in settings.');
+      }
+    } else if (apiType === 'gemini') {
+      console.log('Gemini API selected, checking for API key');
+      if (!settings.geminiApiKey) {
+        console.error('Gemini API key is missing');
+        throw new Error('Gemini API key not found. Please add your Google Gemini API key in settings.');
       }
     } else if (apiType === 'ollama') {
       console.log('Ollama API selected, checking for Ollama URL');
@@ -210,7 +221,7 @@ async function generateContent(data) {
     
     // Prepare prompt for AI
     const prompt = constructPrompt(resumeContent, jobDescription.content, outputs);
-    console.log('Constructed prompt (first 100 chars):', prompt + '...');
+    console.log('Constructed prompt (first 100 chars):', prompt.substring(0, 100) + '...');
     
     // Call the appropriate AI API
     let response;
@@ -219,6 +230,9 @@ async function generateContent(data) {
     if (apiType === 'openai') {
       console.log('Calling OpenAI API with model:', aiModel);
       response = await callOpenAI(settings.apiKey, prompt, aiModel);
+    } else if (apiType === 'gemini') {
+      console.log('Calling Gemini API with model:', aiModel);
+      response = await callGemini(settings.geminiApiKey, prompt, aiModel);
     } else if (apiType === 'ollama') {
       const ollamaUrl = settings.ollamaUrl || 'http://localhost:11434';
       console.log('Calling Ollama API at URL:', ollamaUrl, 'with model:', aiModel);
@@ -489,38 +503,162 @@ Try to format your response strictly as JSON, like this:
  */
 async function callOpenAI(apiKey, prompt, model = 'gpt-3.5-turbo') {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Determine if we need to use the vision endpoint
+    const isVisionModel = model.includes('vision');
+    const endpoint = 'https://api.openai.com/v1/chat/completions';
+    
+    // Set model-specific parameters
+    const maxTokens = getMaxTokensForModel(model);
+    
+    // Prepare the request payload
+    const payload = {
+      model: model,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert at matching candidate profiles to job descriptions and creating optimized job application content. Respond in clean JSON with keys matching section names. If any data is missing, infer based on experience level and resume context.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: maxTokens,
+      response_format: { type: "json_object" }
+    };
+    
+    console.log(`Calling OpenAI API with model ${model}`);
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at matching candidate profiles to job descriptions and creating optimized job application content.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
-      })
+      body: JSON.stringify(payload)
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+      const statusCode = response.status;
+      let errorMessage = response.statusText;
+      let errorDetails = '';
+      
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error.message || errorMessage;
+          errorDetails = JSON.stringify(errorData.error);
+        }
+      } catch (e) {
+        // Try to get text if JSON parsing failed
+        try {
+          errorDetails = await response.text();
+        } catch (textError) {
+          errorDetails = 'Could not parse error response';
+        }
+      }
+      
+      console.error(`OpenAI API error (${statusCode}):`, errorMessage, errorDetails);
+      
+      // Provide more helpful messages for common errors
+      if (statusCode === 401) {
+        throw new Error('OpenAI API error: Invalid API key. Please check your API key in settings.');
+      } else if (statusCode === 429) {
+        throw new Error('OpenAI API error: Rate limit exceeded or insufficient quota. Check your billing and usage limits.');
+      } else if (statusCode === 404) {
+        throw new Error(`OpenAI API error: Model "${model}" not found. The selected model may no longer be available or you may not have access.`);
+      }
+      
+      throw new Error(`OpenAI API error (${statusCode}): ${errorMessage}. ${errorDetails ? `Details: ${errorDetails}` : ''}`);
     }
     
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error calling OpenAI API:', error);
+    throw error;
+  }
+}
+
+/**
+ * Call the Gemini API
+ */
+async function callGemini(apiKey, prompt, model = 'gemini-1.5-pro') {
+  try {
+    // Determine the API endpoint based on the model
+    const baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+    const endpoint = `${baseUrl}/models/${model}:generateContent?key=${apiKey}`;
+    
+    console.log(`Calling Gemini API with model ${model}`);
+    
+    const payload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: "You are an expert at matching candidate profiles to job descriptions and creating optimized job application content. Respond in clean JSON with keys matching section names. If any data is missing, infer based on experience level and resume context."
+            },
+            {
+              text: prompt
+            }
+          ]
+        }
+      ],
+      generation_config: {
+        temperature: 0.7,
+        max_output_tokens: 5000,
+        response_mime_type: "application/json"
+      }
+    };
+    
+    console.log('Sending request to Gemini API');
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const statusCode = response.status;
+      let errorMessage = response.statusText;
+      let errorDetails = '';
+      
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error.message || errorMessage;
+          errorDetails = JSON.stringify(errorData.error);
+        }
+      } catch (e) {
+        // Ignore parse errors on error response
+        try {
+          // Try to get the text response if JSON parsing failed
+          errorDetails = await response.text();
+        } catch (textError) {
+          errorDetails = 'Could not parse error response';
+        }
+      }
+      
+      console.error(`Gemini API error (${statusCode}):`, errorMessage, errorDetails);
+      throw new Error(`Gemini API error (${statusCode}): ${errorMessage}. ${errorDetails ? `Details: ${errorDetails}` : ''}`);
+    }
+    
+    const data = await response.json();
+    
+    // Extract the text content from the response
+    if (data.candidates && data.candidates.length > 0 && 
+        data.candidates[0].content && data.candidates[0].content.parts && 
+        data.candidates[0].content.parts.length > 0) {
+      return data.candidates[0].content.parts[0].text;
+    } else {
+      throw new Error('Unexpected response format from Gemini API');
+    }
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
     throw error;
   }
 }
@@ -656,7 +794,15 @@ function getMaxTokensForModel(model) {
     'mistral': 2048,
     'mixtral': 4096,
     'phi': 1024,
-    'gemma': 2048
+    'gemma': 2048,
+    'gemini-1.5-pro': 8192,
+    'gemini-1.5-flash': 8192,
+    'gemini-1.0-pro': 4096,
+    'gpt-4': 8192,
+    'gpt-4-turbo': 16384,
+    'gpt-4o': 16384,
+    'gpt-4o-mini': 16384,
+    'gpt-3.5-turbo': 4096
   };
   
   // Check if we have a specific limit for this model

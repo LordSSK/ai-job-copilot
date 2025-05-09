@@ -77,6 +77,11 @@ function initGenerateContent() {
       return;
     }
     
+    if (apiType === 'gemini' && !settings.geminiApiKey) {
+      updateStatus('Please add your Google Gemini API key in settings', 'error');
+      return;
+    }
+    
     if (apiType === 'ollama') {
       const ollamaUrl = settings.ollamaUrl || '';
       if (!ollamaUrl) {
@@ -124,7 +129,11 @@ function initGenerateContent() {
       return;
     }
     
-    updateStatus(`Generating content using ${apiType === 'openai' ? 'OpenAI' : 'Ollama'}...`, 'progress');
+    updateStatus(`Generating content using ${
+      apiType === 'openai' ? 'OpenAI' : 
+      apiType === 'gemini' ? 'Gemini' : 
+      'Ollama'
+    }...`, 'progress');
     showProgress(true);
     
     try {
@@ -222,6 +231,10 @@ function initGenerateContent() {
           error.message.includes('provide the resume text')) {
         updateStatus('Error: Could not process your resume. Please try uploading a different file format or check if the resume content is extractable.', 'error');
         console.error('Resume content error:', error.message);
+      } else if (error.message.includes('Gemini API error')) {
+        // Show specific error message for Gemini API issues
+        updateStatus('Error: Gemini API error. Please check your API key and selected model.', 'error');
+        console.error('Gemini API Error:', error.message);
       } else if (error.message.includes('Ollama API error: Forbidden') || 
           error.message.includes('CORS') || 
           error.message.includes('OLLAMA_ORIGINS')) {

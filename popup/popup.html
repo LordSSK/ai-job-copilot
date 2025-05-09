@@ -137,6 +137,7 @@
             <h3>API Provider</h3>
             <select id="api-type-select">
               <option value="openai">OpenAI</option>
+              <option value="gemini">Google Gemini</option>
               <option value="ollama">Ollama (Local)</option>
             </select>
           </div>
@@ -146,6 +147,17 @@
             <label for="api-key-input">API Key</label>
             <input type="password" id="api-key-input" placeholder="Enter your OpenAI API key">
             <p class="setting-help">Your API key is stored locally and used only for generating content.</p>
+          </div>
+          
+          <div class="setting-group" id="gemini-settings" hidden>
+            <h3>Google Gemini Settings</h3>
+            <label for="gemini-api-key-input">API Key</label>
+            <input type="password" id="gemini-api-key-input" placeholder="Enter your Google Gemini API key">
+            <p class="setting-help">Your API key is stored locally and used only for generating content.</p>
+            <div class="gemini-help-box">
+              <p><strong>Note:</strong> You can get your Gemini API key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>.</p>
+              <p>Available models will be automatically fetched when you enter an API key.</p>
+            </div>
           </div>
           
           <div class="setting-group" id="ollama-settings" hidden>

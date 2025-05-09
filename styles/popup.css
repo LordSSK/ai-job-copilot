@@ -487,11 +487,31 @@ select, input {
 
 .ollama-help-box {
   background-color: #f8f9fa;
-  border-left: 4px solid #17a2b8;
-  padding: 10px 12px;
-  margin-top: 10px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.85em;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.gemini-help-box {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.gemini-help-box a,
+.ollama-help-box a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.gemini-help-box a:hover,
+.ollama-help-box a:hover {
+  text-decoration: underline;
 }
 
 .ollama-help-box code {

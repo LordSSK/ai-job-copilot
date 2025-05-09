@@ -8,6 +8,7 @@ import { storageUtils } from '../../utils/storage.js';
 // Settings handling
 function initSettings() {
   const apiKeyInput = document.getElementById('api-key-input');
+  const geminiApiKeyInput = document.getElementById('gemini-api-key-input');
   const aiModelSelect = document.getElementById('ai-model-select');
   const apiTypeSelect = document.getElementById('api-type-select');
   const ollamaUrlInput = document.getElementById('ollama-url-input');
@@ -16,12 +17,17 @@ function initSettings() {
   
   // Toggle settings based on API type
   apiTypeSelect.addEventListener('change', () => {
-    const isOllama = apiTypeSelect.value === 'ollama';
-    document.getElementById('openai-settings').hidden = isOllama;
+    const apiType = apiTypeSelect.value;
+    const isOllama = apiType === 'ollama';
+    const isGemini = apiType === 'gemini';
+    const isOpenAI = apiType === 'openai';
+    
+    document.getElementById('openai-settings').hidden = !isOpenAI;
+    document.getElementById('gemini-settings').hidden = !isGemini;
     document.getElementById('ollama-settings').hidden = !isOllama;
     
     // Update model options
-    updateModelOptions(apiTypeSelect.value);
+    updateModelOptions(apiType);
   });
   
   // Update model options based on API type
@@ -31,13 +37,103 @@ function initSettings() {
     
     // Add appropriate options
     if (apiType === 'openai') {
-      const openAiModels = ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'];
+      const openAiModels = [
+        'gpt-3.5-turbo', 
+        'gpt-4', 
+        'gpt-4-turbo',
+        'gpt-4o',
+        'gpt-4o-mini',
+        'gpt-3.5-turbo-1106'
+      ];
       openAiModels.forEach(model => {
         const option = document.createElement('option');
         option.value = model;
         option.textContent = model;
         aiModelSelect.appendChild(option);
       });
+    } else if (apiType === 'gemini') {
+      // Set loading state
+      const loadingOption = document.createElement('option');
+      loadingOption.value = '';
+      loadingOption.textContent = 'Loading models...';
+      aiModelSelect.appendChild(loadingOption);
+      
+      // Get API key
+      const geminiApiKey = geminiApiKeyInput.value.trim();
+      
+      if (geminiApiKey) {
+        // Fetch Gemini models
+        fetchGeminiModels(geminiApiKey)
+          .then(models => {
+            // Clear loading option
+            aiModelSelect.innerHTML = '';
+            
+            if (models.length === 0) {
+              const noModelsOption = document.createElement('option');
+              noModelsOption.value = '';
+              noModelsOption.textContent = 'No models found';
+              aiModelSelect.appendChild(noModelsOption);
+            } else {
+              // Add all available models
+              models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                aiModelSelect.appendChild(option);
+              });
+            }
+            
+            // Try to set previously selected model
+            storageUtils.get('settings').then(data => {
+              if (data.settings && data.settings.aiModel) {
+                // Check if the model exists in the options
+                const modelExists = Array.from(aiModelSelect.options).some(
+                  option => option.value === data.settings.aiModel
+                );
+                
+                if (modelExists) {
+                  aiModelSelect.value = data.settings.aiModel;
+                }
+              }
+            });
+          })
+          .catch(error => {
+            console.error('Error fetching Gemini models:', error);
+            aiModelSelect.innerHTML = '';
+            
+            const errorOption = document.createElement('option');
+            errorOption.value = '';
+            errorOption.textContent = 'Error loading models';
+            aiModelSelect.appendChild(errorOption);
+            
+            // Add fallback models
+            const fallbackModels = [
+              'gemini-1.5-pro',
+              'gemini-1.5-flash',
+              'gemini-1.0-pro'
+            ];
+            fallbackModels.forEach(model => {
+              const option = document.createElement('option');
+              option.value = model;
+              option.textContent = model + ' (fallback)';
+              aiModelSelect.appendChild(option);
+            });
+          });
+      } else {
+        // No API key, use fallback models
+        aiModelSelect.innerHTML = '';
+        const fallbackModels = [
+          'gemini-1.5-pro',
+          'gemini-1.5-flash',
+          'gemini-1.0-pro'
+        ];
+        fallbackModels.forEach(model => {
+          const option = document.createElement('option');
+          option.value = model;
+          option.textContent = model;
+          aiModelSelect.appendChild(option);
+        });
+      }
     } else if (apiType === 'ollama') {
       // Set loading state
       const loadingOption = document.createElement('option');
@@ -104,6 +200,36 @@ function initSettings() {
     }
   }
   
+  // Fetch available models from Gemini API
+  async function fetchGeminiModels(apiKey) {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch models: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Extract model names from the response
+      if (data.models && Array.isArray(data.models)) {
+        // Filter for text models that support generateContent
+        return data.models
+          .filter(model => 
+            model.supportedGenerationMethods && 
+            model.supportedGenerationMethods.includes('generateContent') &&
+            model.name.includes('gemini')
+          )
+          .map(model => model.name.split('/').pop()); // Extract model name from full path
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching Gemini models:', error);
+      throw error;
+    }
+  }
+  
   // Fetch available models from Ollama server
   async function fetchOllamaModels(ollamaUrl) {
     try {
@@ -127,7 +253,14 @@ function initSettings() {
     }
   }
   
-  // URL input changes should trigger model refresh
+  // API key input changes should trigger model refresh for Gemini
+  geminiApiKeyInput.addEventListener('blur', () => {
+    if (apiTypeSelect.value === 'gemini') {
+      updateModelOptions('gemini');
+    }
+  });
+  
+  // URL input changes should trigger model refresh for Ollama
   ollamaUrlInput.addEventListener('blur', () => {
     if (apiTypeSelect.value === 'ollama') {
       updateModelOptions('ollama');
@@ -180,6 +313,8 @@ function initSettings() {
     // Add API-specific settings
     if (apiType === 'openai') {
       settings.apiKey = apiKeyInput.value.trim();
+    } else if (apiType === 'gemini') {
+      settings.geminiApiKey = geminiApiKeyInput.value.trim();
     } else if (apiType === 'ollama') {
       settings.ollamaUrl = ollamaUrlInput.value.trim() || 'http://localhost:11434';
     }
@@ -208,11 +343,13 @@ function initSettings() {
       console.log('Setting API type to:', apiType);
       
       // Update visible settings sections
-      document.getElementById('openai-settings').hidden = apiType === 'ollama';
-      document.getElementById('ollama-settings').hidden = apiType === 'openai';
+      document.getElementById('openai-settings').hidden = apiType !== 'openai';
+      document.getElementById('gemini-settings').hidden = apiType !== 'gemini';
+      document.getElementById('ollama-settings').hidden = apiType !== 'ollama';
       
       // Set values
       apiKeyInput.value = data.settings.apiKey || '';
+      geminiApiKeyInput.value = data.settings.geminiApiKey || '';
       ollamaUrlInput.value = data.settings.ollamaUrl || 'http://localhost:11434';
       console.log('Set Ollama URL to:', ollamaUrlInput.value);
       
