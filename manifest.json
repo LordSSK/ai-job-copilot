@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "JobFill - Auto Job Application",
+  "name": "ResumeAI Tailor",
   "version": "1.0.0",
-  "description": "AI-powered job application autofill for platforms like Workday, Greenhouse, and Lever",
+  "description": "AI-powered job application tool that personalizes your resume and cover letter based on job descriptions",
   "icons": {
     "16": "assets/icon16.png",
     "48": "assets/icon48.png",
