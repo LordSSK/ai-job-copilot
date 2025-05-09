@@ -15,7 +15,10 @@ A browser extension that uses AI to tailor your resume and cover letter based on
   - Projects
   - Cover letter
 - Auto-fill application forms on supported job platforms
-- Support for both OpenAI API and local Ollama models
+- Support for multiple AI providers:
+  - OpenAI API (GPT-3.5, GPT-4, GPT-4o)
+  - Google Gemini API (Gemini 1.5 Pro, Gemini 1.5 Flash)
+  - Local Ollama models
 
 ## Installation
 
@@ -88,9 +91,12 @@ Here are some screenshots showcasing the ResumeAI Tailor extension:
 ## Configuration
 
 In the "Settings" tab:
-- Choose between OpenAI API or local Ollama for AI generation
-- Enter your OpenAI API key or configure Ollama server URL
+- Choose your AI provider:
+  - OpenAI API: Enter your OpenAI API key and select from models like GPT-3.5, GPT-4, or GPT-4o
+  - Google Gemini API: Enter your Gemini API key (available from [Google AI Studio](https://aistudio.google.com/app/apikey))
+  - Local Ollama: Configure Ollama server URL for local model usage
 - Select the AI model to use for content generation
+- Models are automatically fetched from the API providers when possible
 
 ## Architecture
 
@@ -154,7 +160,7 @@ resumeai-tailor/
 - **Key Files**: `background/background.js`
 - **Features**:
   - Manage communication between popup and content scripts
-  - Handle API calls to AI providers (OpenAI/Ollama)
+  - Handle API calls to AI providers (OpenAI/Gemini/Ollama)
   - Process data and construct AI prompts
   - Parse and structure AI responses
 
@@ -182,14 +188,19 @@ resumeai-tailor/
 
 ### AI Integration
 
-The extension supports two AI backends:
+The extension supports three AI backends:
 
 1. **OpenAI API**:
-   - Uses models like GPT-4/GPT-4o
+   - Uses models like GPT-3.5-turbo, GPT-4, GPT-4o
    - Requires user's API key
    - Offers high-quality content generation
 
-2. **Ollama (Local)**:
+2. **Google Gemini API**:
+   - Uses models like Gemini 1.5 Pro, Gemini 1.5 Flash
+   - Requires user's Gemini API key from Google AI Studio
+   - Provides competitive quality content generation
+
+3. **Ollama (Local)**:
    - Runs locally using models like Llama 2
    - Privacy-focused option with no data leaving the user's computer
    - Requires local Ollama installation
